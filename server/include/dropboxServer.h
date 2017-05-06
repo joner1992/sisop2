@@ -20,3 +20,5 @@ void send_file(char *file);
 
 
 /* ACIMA ESTÃO AS FUNCIONALIDADES MÍNIMAS PARA O SERVIDOR */
+
+int validateServerArguments(int argc, char *argv[]);

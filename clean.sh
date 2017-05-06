@@ -1,0 +1,2 @@
+## SCRIPT TO DELETE ALL BINARIES BEFORE COMMITING TO GIT
+find -name '*.o' -delete
