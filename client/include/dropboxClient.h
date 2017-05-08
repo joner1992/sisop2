@@ -28,3 +28,4 @@ void get_file(char *file);
 void close_connection();
 
 /* ACIMA ESTÃO AS FUNCIONALIDADES MÍNIMAS PARA O CLIENTE */
+int validateClientArguments(int argc, char *argv[]);
