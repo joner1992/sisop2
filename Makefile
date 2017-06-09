@@ -1,0 +1,44 @@
+CC=gcc
+INC_DIR=include/
+BIN_DIR=bin/
+SRC_DIR=src/
+MAIN_DIR=main/
+CLIENT_DIR=./client/
+SERVER_DIR=./server/
+UTILS_SRC=./utils/src/
+UTILS_BIN=./utils/bin/
+CFLAGS=-c -pthread
+CLIENT_OBJS=dropboxUtils.o dropboxClient.o
+SERVER_OBJS=dropboxUtils.o dropboxServer.o
+CLIENT_MOUNTED_OBJS=$(UTILS_BIN)dropboxUtils.o $(CLIENT_DIR)$(BIN_DIR)dropboxClient.o
+SERVER_MOUNTED_OBJS=$(UTILS_BIN)dropboxUtils.o $(SERVER_DIR)$(BIN_DIR)dropboxServer.o
+
+
+all: client server
+
+run-cliente:
+	./cliente -ip localhost -p PORTA -U USUARIO
+
+run-servidor:
+	./servidor -p PORTA
+
+client: clean-client $(CLIENT_OBJS)
+	$(CC) $(CLIENT_DIR)$(MAIN_DIR)client.c -Wall -o cliente $(CLIENT_MOUNTED_OBJS)
+    
+server: clean-server $(SERVER_OBJS)
+	$(CC) $(SERVER_DIR)$(MAIN_DIR)server.c -Wall -o servidor $(SERVER_MOUNTED_OBJS)
+
+dropboxClient.o: $(CLIENT_DIR)$(SRC_DIR)dropboxClient.c
+	$(CC) $(CFLAGS) $(CLIENT_DIR)$(SRC_DIR)dropboxClient.c -Wall -o $(CLIENT_DIR)$(BIN_DIR)dropboxClient.o
+	
+dropboxServer.o: $(SERVER_DIR)$(SRC_DIR)dropboxServer.c
+	$(CC) $(CFLAGS) $(SERVER_DIR)$(SRC_DIR)dropboxServer.c -Wall -o $(SERVER_DIR)$(BIN_DIR)dropboxServer.o
+
+dropboxUtils.o: $(UTILS_SRC)dropboxUtils.c
+	$(CC) $(CFLAGS) $(UTILS_SRC)dropboxUtils.c -Wall -o $(UTILS_BIN)dropboxUtils.o
+
+clean-client:
+	find $(CLIENT_DIR)$(BIN_DIR) -type f ! -name '*.c' ! -name 'Makefile' -delete
+
+clean-server:
+	find $(SERVER_DIR)$(BIN_DIR) -type f ! -name '*.c' ! -name 'Makefile' -delete

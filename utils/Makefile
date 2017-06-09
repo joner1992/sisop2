@@ -4,7 +4,7 @@
 #
 
 CC=gcc
-CFLAGS=-c
+CFLAGS=-c -pthread
 INC_DIR=./include/
 BIN_DIR=./bin/
 SRC_DIR=./src/
