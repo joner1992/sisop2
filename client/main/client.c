@@ -5,7 +5,6 @@
 int sockfd, n;
 struct sockaddr_in serv_addr;
 struct hostent *server;
-char buffer[BUFFERSIZE];
 
 FILE *file;
 
@@ -38,8 +37,34 @@ void connectSocket() {
     }
 }
 
-int main(int argc, char *argv[]) {
+void _send(FILE *file) {
+    char buffer[BUFFERSIZE];
+    
+    bzero(buffer, BUFFERSIZE);
+    
+    fgets(buffer, BUFFERSIZE, file);
+    
+    if (write(sockfd, buffer, strlen(buffer)))
+    {
+      perror("ERROR writing to socket\n");
+      exit(ERROR);
+    } 
+}
 
+void _read() {
+    char buffer[BUFFERSIZE];
+    bzero(buffer,BUFFERSIZE);
+    
+    if (read(sockfd, buffer, BUFFERSIZE)) {
+      perror("ERROR reading from socket\n");
+      exit(ERROR);
+    } 
+
+    printf("%s\n",buffer);
+}
+
+int main(int argc, char *argv[]) {
+ 
   if(validateClientArguments(argc, argv) != ERROR) {
     
     getHost(argv[2]);
@@ -50,35 +75,16 @@ int main(int argc, char *argv[]) {
 
      printf("Opening file ");
      file = fopen("./test.txt", "r");
-     
-    bzero(buffer, BUFFERSIZE);
-    fgets(buffer, BUFFERSIZE, file);
+   
+    if(file) {
+      _send(file);
+    }
     
-	/* write in the socket */
-    n = write(sockfd, buffer, strlen(buffer));
-    if (n == ERROR)
-    {
-      perror("ERROR writing to socket\n");
-      return ERROR;
-    } 
-
-    bzero(buffer,BUFFERSIZE);
+    _read();
     
-    /* read from the socket */
-    n = read(sockfd, buffer, BUFFERSIZE);
-    if (n == ERROR)
-    {
-      perror("ERROR reading from socket\n");
-      return ERROR;
-    } 
-    printf("%s\n",buffer);
-
-    // CLOSE
     close(sockfd);
 
-  }
-  else
-  {
+  } else {
     return ERROR;
   }
 
