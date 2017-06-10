@@ -69,6 +69,6 @@ int main(int argc, char *argv[])
   {
       return ERROR;
   }        
-  return SUCCESS;
+  return 0;
 }
 

@@ -1,30 +1,31 @@
 #include "../../utils/include/dropboxUtils.h"
 #include "../include/dropboxClient.h"
+#include <stdio.h>
 
-int main(int argc, char *argv[]) {
+int sockfd, n;
+struct sockaddr_in serv_addr;
+struct hostent *server;
+char buffer[BUFFERSIZE];
 
-  if(validateClientArguments(argc, argv) != ERROR)
-  {
-    // VARIABLES FOR SOCKET
+FILE *file;
 
-    int sockfd, n;
-    struct sockaddr_in serv_addr;
-    struct hostent *server;
-    char buffer[BUFFERSIZE];
-    
-    server = gethostbyname(argv[2]);
-    if (server == NULL) 
-    {
-      perror("ERROR, no such host\n");
-      return ERROR;
-    }
-    // CREATE SOCKET
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == ERROR)
-    {
+void getHost(char *argv) {
+  server = gethostbyname(argv);
+  
+  if (server == NULL) {
+    perror("ERROR, no such host\n");
+    exit(ERROR);
+  }
+}
+
+void createSocket() {
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == ERROR) {
       perror("ERROR opening socket\n");
-      return ERROR;
+      exit(ERROR);
     } 
-    // CONNECT SOCKET
+}
+
+void connectSocket() {
     serv_addr.sin_family = AF_INET;     
     serv_addr.sin_port = htons(DEFAULTPORT);    
     serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
@@ -33,12 +34,25 @@ int main(int argc, char *argv[]) {
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
     {
       perror("ERROR connecting to server\n");
+      exit(ERROR);
     }
+}
 
-    // READ/WRITE
-     printf("Enter the message: ");
+int main(int argc, char *argv[]) {
+
+  if(validateClientArguments(argc, argv) != ERROR) {
+    
+    getHost(argv[2]);
+    
+    createSocket();
+    
+    connectSocket();
+
+     printf("Opening file ");
+     file = fopen("./test.txt", "r");
+     
     bzero(buffer, BUFFERSIZE);
-    fgets(buffer, BUFFERSIZE, stdin);
+    fgets(buffer, BUFFERSIZE, file);
     
 	/* write in the socket */
     n = write(sockfd, buffer, strlen(buffer));
@@ -68,7 +82,7 @@ int main(int argc, char *argv[]) {
     return ERROR;
   }
 
-  return SUCCESS;
+  return 0;
 }
     
 	
