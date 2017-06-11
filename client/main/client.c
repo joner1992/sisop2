@@ -92,7 +92,7 @@ void _read() {
     printf("%s\n",buffer);
 }
 
-void *readUser() {
+void *readWriteUser() {
 
   int n;  
   char buffer[BUFFERSIZE];
@@ -116,7 +116,23 @@ void *readUser() {
 
     if(n != 0){
       printf("RECEBEU: %s\n", buffer);
-    } 
+    }
+
+    bzero(buffer, BUFFERSIZE);
+
+    //READ SOMETHING FROM THE INPUT
+    printf("Cliente manda: ");
+    fgets(buffer,BUFFERSIZE,stdin);
+
+    n = write(sockfd, buffer, strlen(buffer));
+    if (n == ERROR) {
+      perror("ERROR writing to socket\n");
+      exit(ERROR);
+    }
+
+    printf("ENVIOU: %s\n", buffer);
+
+
   }
 }
 
@@ -160,18 +176,12 @@ int main(int argc, char *argv[]) {
     
     connectSocket();
 
-    //CREATE READING THREAD
-    pthread_t readThread;
-    pthread_attr_t attributesReadThread;
-    pthread_attr_init(&attributesReadThread);
-    pthread_create(&readThread,&attributesReadThread,readUser,NULL);
+    //CREATE READING/WRITING THREAD
+    pthread_t readWriteThread;
+    pthread_attr_t attributesReadWriteThread;
+    pthread_attr_init(&attributesReadWriteThread);
+    pthread_create(&readWriteThread,&attributesReadWriteThread,readWriteUser,NULL);
     
-    //CREATE WRITING THREAD
-    pthread_t writeThread;
-    pthread_attr_t attributesWriteThread;
-    pthread_attr_init(&attributesWriteThread);
-    pthread_create(&writeThread,&attributesReadThread,writeUser,NULL);
-
     //  printf("Opening file ");
     //  file = fopen("./test.txt", "r");
    
@@ -181,8 +191,7 @@ int main(int argc, char *argv[]) {
     
     // _read();
 
-    pthread_join(writeThread, NULL);
-    pthread_join(readThread, NULL);
+    pthread_join(readWriteThread, NULL);
         
     //close(sockfd);
 
