@@ -3,10 +3,10 @@ include Makefile.compile
 all: client server
 
 run-cliente:
-	./cliente -ip localhost -p PORTA -U USUARIO
+	./cliente -ip localhost -p 12001 -U USUARIO
 
 run-servidor:
-	./servidor -p PORTA
+	./servidor -p 12001
 
 run:
-	./servidor -p PORTA & ./cliente -ip localhost -p PORTA -U USUARIO
+	./servidor -p 12001 & ./cliente -ip localhost -p 12001 -U USUARIO

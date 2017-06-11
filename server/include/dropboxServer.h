@@ -6,19 +6,21 @@
 ************************************/
 
 // Estruturas estarao dispostas no servidor na forma de uma lista encadeada de clientes
-struct	file_info	{
+typedef struct	file_info	{
   char name[MAXNAME]; // refere-se ao nome do arquivo
   char extension[MAXNAME]; // refere-se ao tipo de extensao do arquivo
   char last_modified[MAXNAME]; // refere-se a data da ultima mofidicacao no arquivo
   int size; // tamanho do arquivo em bytes.
-};
+  pthread_mutex_t fileMutex;
+} UserFiles;
 
-// struct	client	{
-//   int devices[2]; // dispositivos de usuario
-//   char userid[MAXNAME]; // id do usuario no servidor, que devera ser unico. Informado pela linha de comando
-//   struct file_info[MAXFILES]; //metadados de cada arquivo que o cliente possui no servidor
-//   int logged_in; // cliente esta logado ou nao
-// };
+typedef struct client	{
+ int devices[2]; // dispositivos de usuario
+ char userId[MAXNAME]; // id do usuario no servidor, que devera ser unico. Informado pela linha de comando
+ UserFiles file_info[MAXFILES]; //metadados de cada arquivo que o cliente possui no servidor
+ int logged_in; // cliente esta logado ou nao
+ pthread_mutex_t loginMutex;
+} Client_Info;
 
 
 /*  Sincroniza o servidor com o diretorio 
@@ -39,3 +41,6 @@ void send_file(char *file);
 /* ACIMA ESTÃO AS FUNCIONALIDADES MÍNIMAS PARA O SERVIDOR */
 
 int validateServerArguments(int argc, char *argv[]);
+int searchForUserId(PFILA2 fila, char *userId);
+void createDirectory(char *argv);
+void disconnectClient(int newsockfd);

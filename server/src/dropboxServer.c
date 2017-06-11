@@ -25,7 +25,6 @@ int validateServerArguments(int argc, char *argv[]) {
   if(argc == 3)
   {
   // verify arguments
-    printf("ARGV");
 		if(strcmp(argv[1], "-p") == 0)
     {
       exit = SUCCESS;
@@ -47,3 +46,60 @@ int validateServerArguments(int argc, char *argv[]) {
 	}
 		return exit;
 }
+
+
+int searchForUserId(PFILA2 fila, char *userId) {
+  int first;
+  first = FirstFila2(fila);
+  if (first == LISTSUCCESS) {
+    void *clientFound;
+    Client_Info *clientWanted;
+    clientWanted = (Client_Info*) GetAtIteratorFila2(fila);
+    if (strcmp(clientWanted->userId, userId) == 0) {
+      return LISTSUCCESS;
+    }
+    else {
+      int iterator = 0;
+      while (iterator == 0) {
+        iterator = NextFila2(fila);
+        clientFound = GetAtIteratorFila2(fila);
+        if (clientFound == NULL) {
+          return ERROR;
+        }
+        else {
+          clientWanted = (Client_Info*) clientFound;
+          if (strcmp(clientWanted->userId, userId) == 0) {
+            return LISTSUCCESS;
+          }
+        }
+      }
+      return ERROR;
+    }
+  }
+  else {
+    return ERROR;
+  }
+
+}
+
+void createDirectory(char *argv) {
+  char root[50] = "mkdir -p ./sync_dir_";
+  strcat(root, argv);
+  system(root);  
+  printf("Directory ./sync_dir_%s created successfully.\n", argv);
+}
+
+void disconnectClient(int newsockfd) {
+  
+  int n;
+  char buffer[BUFFERSIZE];
+  bzero(buffer, BUFFERSIZE);
+  strcpy(buffer, DISCONNECTED);
+  
+  n = write(newsockfd, buffer, strlen(buffer));
+  if (n == ERROR) {
+  perror("ERROR writing to socket\n");
+    exit(ERROR);
+  }
+}
+

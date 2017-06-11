@@ -16,4 +16,4 @@ util: $(SRC_DIR)dropboxUtils.c
 	$(CC) $(CFLAGS) $(SRC_DIR)dropboxUtils.c -Wall -o $(BIN_DIR)dropboxUtils.o
 
 clean:
-	find $(BIN_DIR) -type f ! -name '*.c' ! -name 'Makefile' -delete
+	find $(BIN_DIR) -type f  ! -name 'support.o' ! -name '*.c' ! -name 'Makefile' -delete
