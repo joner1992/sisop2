@@ -1,7 +1,7 @@
 #include "../../utils/include/dropboxUtils.h"
 #include "../include/dropboxServer.h"
 #include <stdio.h>
-#include "../include/file.h"
+#include "../../utils/include/file.h"
 
 
 int sockfd, newsockfd;
@@ -94,10 +94,7 @@ int main(int argc, char *argv[]) {
 		  printf("ERROR on accept");
 	
     
-    FILE *file = fopen("./files/out/sockets.pdf", "wb");
-    if(file) receive_(newsockfd, file);
-    
-    fclose(file);
+    receive_(newsockfd);
     
     close(sockfd);
     close(newsockfd);

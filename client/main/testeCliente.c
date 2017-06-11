@@ -1,7 +1,7 @@
 #include "../../utils/include/dropboxUtils.h"
 #include "../include/dropboxClient.h"
 #include <stdio.h>
-#include "../include/file.h"
+#include "../../utils/include/file.h"
 
 
 int sockfd, n, server_port;
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
     createSocket();
     sockfd = createSocket();
     
-    printf("\n%s", argv[5]);
+    printf("\nFile to transfer %s", argv[5]);
 
     if((server_port = getPort(argv[4])) == ERROR ) {
       perror("ERROR bad port configuration\n");
@@ -77,11 +77,9 @@ int main(int argc, char *argv[]) {
     }
     
     connectSocket(serv_addr, server, sockfd);
-    FILE *file = fopen("./files/in/sockets.pdf", "rb");
-    if(file) send_(sockfd, file);
+    
+    send_(sockfd, argv[5]);
     
     close(sockfd);
-    
-    fclose(file);
     
 }

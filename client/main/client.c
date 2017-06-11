@@ -1,7 +1,7 @@
 #include "../../utils/include/dropboxUtils.h"
 #include "../include/dropboxClient.h"
 #include <stdio.h>
-#include "../include/file.h"
+#include "../../utils/include/file.h"
 
 int sockfd, n, server_port;
 char userId[MAXNAME];

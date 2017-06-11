@@ -1,25 +1,31 @@
 #include "../../utils/include/dropboxUtils.h"
-#include "../include/dropboxUtils.h"
 #include <stdio.h>
 
 int BUFFER_TRANSFER = 32 * 1024;
 
-int send_(int socket, FILE* file) {
+int send_(int socket, char* filename) {
    int size, read_size, stat, packet_index;
    char send_buffer[BUFFER_TRANSFER], read_buffer[256];
    packet_index = 1;
-
-   printf("Getting file Size\n");   
+   
+   FILE *file = fopen(filename, "rb");
 
    if(file == NULL) {
-        printf("Error Opening Image File"); } 
+        printf("Error Opening Image File"); 
+       return -1;
+   } 
+
+    printf("\nSending %s\n", filename);
+    write(socket, filename, 255);
+    
+    printf("Getting file Size\n");   
 
    fseek(file, 0, SEEK_END);
    size = ftell(file);
    fseek(file, 0, SEEK_SET);
    printf("Total file size: %i\n",size);
 
-   //Send Picture Size
+   //Send Size
    printf("Sending file Size\n");
    write(socket, (void *)&size, sizeof(int));
 
@@ -53,34 +59,47 @@ int send_(int socket, FILE* file) {
       //Zero out our send buffer
       bzero(send_buffer, sizeof(send_buffer));
      }
+     fclose(file);
 }
 
-int receive_(int socket, FILE* file) { // Start function 
+int receive_(int socket) { // Start function 
 
   int recv_size = 0,size = 0, read_size, write_size, packet_index =1,stat;
   
   char filearray[BUFFER_TRANSFER + 1];
   
+  char filename[255];
+  
+  FILE *file;
+  
+  do {
+    stat = read(socket, filename, sizeof(filename));
+  } while(stat<0);
+  
+  printf("Receiveing %s", filename);
+  
   //Find the size of the file
   do{
-  stat = read(socket, &size, sizeof(int));
+    stat = read(socket, &size, sizeof(int));
   }while(stat<0);
   
   printf("Packet received.\n");
   printf("Packet size: %i\n",stat);
-  printf("Image size: %i\n",size);
+  printf("File size: %i\n",size);
   printf(" \n");
   
   char buffer[] = "Got it";
   
   //Send our verification signal
-  do{
+  do {
     stat = write(socket, &buffer, sizeof(int));
-  }while(stat<0);
+  } while(stat<0);
   
   printf("Reply sent\n");
   printf(" \n");
   
+  //file = fopen(filename, "wb");
+  file = fopen("./files/out/sockets.pdf", "wb");
   
   if( file == NULL) {
   printf("Error has occurred. Image file could not be opened\n");
@@ -94,7 +113,6 @@ int receive_(int socket, FILE* file) { // Start function
   int buffer_fd;
   
   while(recv_size < size) {
-  //while(packet_index < 2){
   
     FD_ZERO(&fds);
     FD_SET(socket,&fds);
@@ -135,7 +153,8 @@ int receive_(int socket, FILE* file) { // Start function
   
   }
 
-  printf("Image successfully Received!\n");
+  fclose(file);
+  printf("File successfully Received!\n");
   return 1;
 }
 

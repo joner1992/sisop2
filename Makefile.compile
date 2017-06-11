@@ -14,7 +14,7 @@ CLIENT_MOUNTED_OBJS=$(UTILS_BIN)dropboxUtils.o $(UTILS_BIN)support.o $(CLIENT_DI
 SERVER_MOUNTED_OBJS=$(UTILS_BIN)dropboxUtils.o $(UTILS_BIN)support.o $(SERVER_DIR)$(BIN_DIR)dropboxServer.o
 
 
-teste: 
+testeCompile: 
 	make clientTeste 
 	make serverTeste
 

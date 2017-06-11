@@ -1,5 +1,6 @@
 #include "../../utils/include/dropboxUtils.h"
 #include "../include/dropboxServer.h"
+#include "../../utils/include/file.h"
 #include <stdio.h>
 
 int receive_image(int socket) { // Start function 
