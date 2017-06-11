@@ -5,6 +5,7 @@
 
 int sockfd, n, server_port;
 char userId[MAXNAME];
+char buffer[BUFFERSIZE];
 struct sockaddr_in serv_addr;
 struct hostent *server;
 
@@ -170,18 +171,20 @@ int main(int argc, char *argv[]) {
 
   if(validateClientArguments(argc, argv) != ERROR) {
     
-    getHost(argv[2]);
+    server = getHost(argv[2]);
     getUserId(argv[6]);
     createSocket();
-    
+    printf("Socket created");
     sockfd = createSocket();
     
-    connectSocket(serv_addr, server, sockfd);
 
     if((server_port = getPort(argv[4])) == ERROR ) {
       perror("ERROR bad port configuration\n");
       exit(ERROR);
     }
+    
+    connectSocket(serv_addr, server, sockfd);
+    
     //CREATE READING/WRITING THREAD
    /* pthread_t readWriteThread;
     pthread_attr_t attributesReadWriteThread;

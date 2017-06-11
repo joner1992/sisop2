@@ -90,12 +90,14 @@ int receive_image(int socket) { // Start function
   return 1;
 }
 
-int sockfd;
+int sockfd, newsockfd;
 struct sockaddr_in serv_addr;
 int server_port;
 FILA2 clientList;
 pthread_mutex_t userVerificationMutex;
-
+char *endptr;
+socklen_t client;
+struct sockaddr_in serv_addr, cli_addr;
 
 void initializeUserList() {
   if(CreateFila2(&clientList) != LISTSUCCESS) { // 0 = linked list initialized successfully
@@ -152,14 +154,6 @@ int verifyUserAuthentication(char *buffer, int newsockfd) {
 }
 
 int getPort(char *argv) {
-  char *endptr;
-=======
- 
-  //VARIABLES FOR SOCKET 
-  int sockfd, newsockfd;
-  socklen_t client;
-  struct sockaddr_in serv_addr, cli_addr;
->>>>>>> Envio de arquivos, PDF quebrado
   
   if(strtoimax(argv, &endptr,10) <= 0) {
     return ERROR;
@@ -169,7 +163,6 @@ int getPort(char *argv) {
 }
 
 void createServerSocket(){
-   // CREATE SOCKET
   if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) <= 0) {
     perror("ERROR: Failed in socket creation");
     exit(ERROR);
@@ -182,7 +175,6 @@ void bindServerSocket() {
   serv_addr.sin_addr.s_addr = INADDR_ANY;
   bzero(&(serv_addr.sin_zero), 8);     
   
-  // BIND SOCKET
   if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) == ERROR) {
     perror("ERROR on binding server socket");
     exit(ERROR);
@@ -232,12 +224,9 @@ void *writeUser(void* arg){
       perror("ERROR writing to socket\n");
       exit(ERROR);
     }
-<<<<<<< HEAD
-=======
     // LISTEN
     listen(sockfd, 5);
     printf("\n Server is listening at: %s:%d\n", inet_ntoa(serv_addr.sin_addr), (int) ntohs(serv_addr.sin_port));
->>>>>>> Envio de arquivos, PDF quebrado
 
     printf("ENVIOU: %s\n", buffer);
   }
@@ -254,10 +243,9 @@ void *acceptClient() {
     if ((newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &client)) == ERROR)
     {
       perror("ERROR on accept client");
-<<<<<<< HEAD
       exit(ERROR);
     }  
-
+/*
     // READ/WRITE (WILL NEED THREADS)
     bzero(buffer, BUFFERSIZE);
     n = read(newsockfd, buffer, BUFFERSIZE);
@@ -283,8 +271,9 @@ void *acceptClient() {
 
       // pthread_join(readThread, NULL);
       // pthread_join(writeThread, NULL);
+*/
 
-      // close(newsockfd);
+      close(newsockfd);
   }
 }
 

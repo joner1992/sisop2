@@ -14,8 +14,19 @@ CLIENT_MOUNTED_OBJS=$(UTILS_BIN)dropboxUtils.o $(UTILS_BIN)support.o $(CLIENT_DI
 SERVER_MOUNTED_OBJS=$(UTILS_BIN)dropboxUtils.o $(UTILS_BIN)support.o $(SERVER_DIR)$(BIN_DIR)dropboxServer.o
 
 
+teste: 
+	make clientTeste 
+	make serverTeste
+
+clientTeste: clean-client 
+	$(CC) $(CLIENT_DIR)$(MAIN_DIR)testeCliente.c $(UTILS_SRC)file.c  -Wall  -o cliente
+
+serverTeste: clean-server 
+	$(CC) $(SERVER_DIR)$(MAIN_DIR)testeServer.c $(UTILS_SRC)file.c  -Wall  -o servidor
+
+
 client: phony-client clean-client $(CLIENT_OBJS)
-	$(CC) $(CLIENT_DIR)$(MAIN_DIR)client.c -m32 -Wall -pthread -o cliente $(CLIENT_MOUNTED_OBJS)
+	$(CC) $(CLIENT_DIR)$(MAIN_DIR)*.c -m32 -Wall -pthread -o cliente $(CLIENT_MOUNTED_OBJS)
     
 server: phony-server clean-server $(SERVER_OBJS)
 	$(CC) $(SERVER_DIR)$(MAIN_DIR)*.c -m32 -Wall -pthread -o servidor $(SERVER_MOUNTED_OBJS)

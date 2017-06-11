@@ -1,2 +1,6 @@
 cliente
 servidor
+files/out/*
+server/bin/*
+client/bin/*
+utils/bin/*

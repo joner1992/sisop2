@@ -9,7 +9,7 @@ run-servidor:
 	./servidor -p 12001
 
 run:
-	./servidor -p PORTA & ./cliente -ip localhost -p PORTA -U USUARIO
+	./servidor -p 12001 & ./cliente -ip localhost -p 12001 -U USUARIO
 
 show:
 	ps aux | grep ./cliente
