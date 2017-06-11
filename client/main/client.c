@@ -1,6 +1,7 @@
 #include "../../utils/include/dropboxUtils.h"
 #include "../include/dropboxClient.h"
 #include <stdio.h>
+#include "../include/file.h"
 
 int sockfd, n, server_port;
 char userId[MAXNAME];
@@ -9,13 +10,14 @@ struct hostent *server;
 
 FILE *file;
 
-void getHost(char *argv) {
-  server = gethostbyname(argv);
+struct hostent* getHost(char *argv) {
+  struct hostent *server = gethostbyname(argv);
   
   if (server == NULL) {
     perror("ERROR, no such host\n");
     exit(ERROR);
   }
+  return server;
 }
 
 int getPort(char *argv) {
@@ -36,22 +38,25 @@ void getUserId(char *argv){
   strcpy(userId, argv);
 }
 
-void createSocket() {
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == ERROR) {
+
+int createSocket() {
+    int  socketNumber;
+    printf("\n Opening socket");
+    if ((socketNumber = socket(AF_INET, SOCK_STREAM, 0)) == ERROR) {
       perror("ERROR opening socket\n");
       exit(ERROR);
-    } 
+    }
+    return socketNumber;
 }
 
-void connectSocket() {
-    char buffer[BUFFERSIZE];
-    int n;
-    serv_addr.sin_family = AF_INET;  
+void connectSocket(struct sockaddr_in serv_addr, struct hostent *server, int socketNumber) {
+    serv_addr.sin_family = AF_INET;     
     serv_addr.sin_port = htons(server_port);    
     serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
     bzero(&(serv_addr.sin_zero), 8); 
-
-    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+    
+    printf("\n Connecting to server");
+    if (connect(socketNumber,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
     {
       perror("ERROR connecting to server\n");
       exit(ERROR);
@@ -168,32 +173,30 @@ int main(int argc, char *argv[]) {
     getHost(argv[2]);
     getUserId(argv[6]);
     createSocket();
+    
+    sockfd = createSocket();
+    
+    connectSocket(serv_addr, server, sockfd);
 
     if((server_port = getPort(argv[4])) == ERROR ) {
       perror("ERROR bad port configuration\n");
       exit(ERROR);
     }
-    
-    connectSocket();
-
     //CREATE READING/WRITING THREAD
-    pthread_t readWriteThread;
+   /* pthread_t readWriteThread;
     pthread_attr_t attributesReadWriteThread;
     pthread_attr_init(&attributesReadWriteThread);
     pthread_create(&readWriteThread,&attributesReadWriteThread,readWriteUser,NULL);
-    
-    //  printf("Opening file ");
-    //  file = fopen("./test.txt", "r");
-   
-    // if(file) {
-    //   _send(file);
-    // }
-    
-    // _read();
 
     pthread_join(readWriteThread, NULL);
-        
-    //close(sockfd);
+     */   
+     
+    file = fopen("./files/in/test.txt", "r");
+    if(file) send_(sockfd, file);
+    
+    close(sockfd);
+    
+    fclose(file);
 
   } else {
     return ERROR;

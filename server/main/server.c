@@ -1,12 +1,98 @@
 #include "../../utils/include/dropboxUtils.h"
 #include "../include/dropboxServer.h"
+#include <stdio.h>
+
+int receive_image(int socket) { // Start function 
+
+  int recv_size = 0,size = 0, read_size, write_size, packet_index =1,stat;
+  
+  char imagearray[10241];
+  FILE *image;
+  
+  //Find the size of the image
+  do{
+  stat = read(socket, &size, sizeof(int));
+  }while(stat<0);
+  
+  printf("Packet received.\n");
+  printf("Packet size: %i\n",stat);
+  printf("Image size: %i\n",size);
+  printf(" \n");
+  
+  char buffer[] = "Got it";
+  
+  //Send our verification signal
+  do{
+    stat = write(socket, &buffer, sizeof(int));
+  }while(stat<0);
+  
+  printf("Reply sent\n");
+  printf(" \n");
+  
+  image = fopen("./files/out/test.txt", "w");
+  
+  if( image == NULL) {
+  printf("Error has occurred. Image file could not be opened\n");
+  return -1; }
+  
+  //Loop while we have not received the entire file yet
+
+  struct timeval timeout = {10,0};
+  
+  fd_set fds;
+  int buffer_fd;
+  
+  while(recv_size < size) {
+  //while(packet_index < 2){
+  
+    FD_ZERO(&fds);
+    FD_SET(socket,&fds);
+  
+    buffer_fd = select(FD_SETSIZE,&fds,NULL,NULL,&timeout);
+  
+    if (buffer_fd < 0)
+       printf("error: bad file descriptor set.\n");
+  
+    if (buffer_fd == 0)
+       printf("error: buffer read timeout expired.\n");
+  
+    if (buffer_fd > 0)
+    {
+        do{
+               read_size = read(socket,imagearray, 10241);
+            }while(read_size <0);
+  
+            printf("Packet number received: %i\n",packet_index);
+        printf("Packet size: %i\n",read_size);
+  
+  
+        //Write the currently read data into our image file
+         write_size = fwrite(imagearray,1,read_size, image);
+         printf("Written image size: %i\n",write_size); 
+  
+             if(read_size !=write_size) {
+                 printf("error in read write\n");    }
+  
+  
+             //Increment the total number of bytes read
+             recv_size += read_size;
+             packet_index++;
+             printf("Total received image size: %i\n",recv_size);
+             printf(" \n");
+             printf(" \n");
+    }
+  
+  }
 
 
-//Variables for socket
+  fclose(image);
+  printf("Image successfully Received!\n");
+  return 1;
+}
+
 int sockfd;
 struct sockaddr_in serv_addr;
 int server_port;
-// Queue for clients structs
 FILA2 clientList;
 pthread_mutex_t userVerificationMutex;
 
@@ -67,6 +153,13 @@ int verifyUserAuthentication(char *buffer, int newsockfd) {
 
 int getPort(char *argv) {
   char *endptr;
+=======
+ 
+  //VARIABLES FOR SOCKET 
+  int sockfd, newsockfd;
+  socklen_t client;
+  struct sockaddr_in serv_addr, cli_addr;
+>>>>>>> Envio de arquivos, PDF quebrado
   
   if(strtoimax(argv, &endptr,10) <= 0) {
     return ERROR;
@@ -139,6 +232,12 @@ void *writeUser(void* arg){
       perror("ERROR writing to socket\n");
       exit(ERROR);
     }
+<<<<<<< HEAD
+=======
+    // LISTEN
+    listen(sockfd, 5);
+    printf("\n Server is listening at: %s:%d\n", inet_ntoa(serv_addr.sin_addr), (int) ntohs(serv_addr.sin_port));
+>>>>>>> Envio de arquivos, PDF quebrado
 
     printf("ENVIOU: %s\n", buffer);
   }
@@ -155,6 +254,7 @@ void *acceptClient() {
     if ((newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &client)) == ERROR)
     {
       perror("ERROR on accept client");
+<<<<<<< HEAD
       exit(ERROR);
     }  
 
@@ -201,8 +301,8 @@ int main(int argc, char *argv[])
 
     createServerSocket();
     bindServerSocket();
-    // LISTEN
 
+    // LISTEN
     listen(sockfd, 5);
     printf("Server is listening at: %s:%d\n", inet_ntoa(serv_addr.sin_addr), (int) ntohs(serv_addr.sin_port));
 
@@ -214,7 +314,12 @@ int main(int argc, char *argv[])
 
     pthread_join(acceptThread, NULL);
     
-    //close(sockfd);
+
+    receive_image(newsockfd);
+    
+    close(newsockfd);
+    close(sockfd);
+    
   }
   else 
   {
