@@ -5,7 +5,6 @@ void createDirectory(char *argv, int server) {
     if(server) {
         char root[100] = "./clientsDirectories/sync_dir_";
         strcat(root, argv);
-        system(root);
         mkdir(root, 0777);
         printf("Directory ./sync_dir_%s created successfully.\n", argv);
     }
