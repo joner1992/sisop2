@@ -1,0 +1,2 @@
+
+void getFilesFromUser(char* userId);
