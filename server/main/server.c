@@ -20,12 +20,12 @@ void initializeList(PFILA2 list){
 }
 
 int verifyAuxSocket(char *buffer) {
-  if(buffer[0] == 'a' && buffer[1] == 'u' && buffer[2] == 'x'){
-    return SUCCESS;
-    
+  char buffercmp[BUFFERSIZE];
+  strcpy(buffercmp, buffer);
+  if(buffercmp[0] == 'a' && buffercmp[1] == 'u' && buffercmp[2] == 'x'){
+    return SUCCESS;        
   }
   return ERROR;
-  
 }
 
 void verifyUserAuthentication(char *buffer, int newsockfd) {
@@ -110,12 +110,10 @@ void *writeUser(void* arg){
 
 void *auxClientThread(void* auxThread){
   int n;
-  //fazer cast da estrutura
-  clientThread *newAuxThread = auxThread;
   char buffer[BUFFERSIZE];
-  
-  while(1){
-    
+  clientThread *newAuxThread = auxThread;
+
+  while(1){ 
     bzero(buffer, BUFFERSIZE);
     n = read(newAuxThread->socketId, buffer, BUFFERSIZE);
     if (n == ERROR) {
@@ -126,7 +124,7 @@ void *auxClientThread(void* auxThread){
     char *subString;
     char *fileName;
     char *fileContent;
-    char *command;
+    char command[BUFFERSIZE];
     int numCommands;
     
     for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)){
@@ -143,16 +141,14 @@ void *auxClientThread(void* auxThread){
     }
     
     if(strcmp(command, "list") == 0) {
-      //chamar função de list
+      printf("chamou list\n");
     } else if(strcmp(command, "exit") == 0) {
-      //chamar função de exit
+      printf("chamou exit\n");
     } else if(strcmp(command, "upload") == 0) {
-      //chamar função pra upload passando fileOrPath
+      printf("chamou upload com fileName = %s\n", fileName);
     } else if(strcmp(command, "download") == 0) {
-      //chamar função pra download passando fileOrPath
-    } else {
-      //erro leitura de comando
-    }
+      printf("chamou download com fileName = %s\n", fileName);
+    } 
   }
 }
 
@@ -169,22 +165,22 @@ void *acceptClient() {
       perror("ERROR on accept client");
       exit(ERROR);
     }  
+    
+    pthread_mutex_lock(&userVerificationMutex);
 
     // READ/WRITE (WILL NEED THREADS)
     bzero(buffer, BUFFERSIZE);
     n = read(newsockfd, buffer, BUFFERSIZE);
     if (n == ERROR) {
       printf("ERROR reading from socket");
-    }
-
+    }    
     
-    pthread_mutex_lock(&userVerificationMutex);
     if(verifyAuxSocket(buffer) == SUCCESS){
-      char *auxUserId = cropUserId(buffer);
-      
+
       clientThread *auxSocket = (clientThread*) malloc(sizeof(clientThread));
-      strcpy(auxSocket->userId, auxUserId);
+      strcpy(auxSocket->userId, cropUserId(buffer));
       auxSocket->socketId = newsockfd;
+
       AppendFila2(&auxSocketsList, (void *) auxSocket);
       
       pthread_mutex_unlock(&userVerificationMutex);
@@ -193,7 +189,7 @@ void *acceptClient() {
       pthread_t auxThread;
       pthread_attr_t attributesAuxThread;
       pthread_attr_init(&attributesAuxThread);
-      pthread_create(&auxThread,&attributesAuxThread, auxClientThread, &auxSocket);
+      pthread_create(&auxThread,&attributesAuxThread, auxClientThread, (void *) auxSocket);
       
       //criar uma thread e passa newsockfd e userID
       //download/upload/comandos

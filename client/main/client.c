@@ -108,7 +108,7 @@ void connectAuxSocket() {
     strcat(buffer, "aux_");
     strcat(buffer, userId);
     
-    n = write(sockfd, buffer, strlen(buffer));
+    n = write(aux_sockfd, buffer, strlen(buffer));
     if (n == ERROR) {
       perror("ERROR writing to socket\n");
       exit(ERROR);

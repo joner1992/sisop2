@@ -85,8 +85,6 @@ void disconnectClient(int newsockfd) {
 
 char *cropUserId(char *auxSocketName) {
   char *subString;
-  strtok_r(auxSocketName, " ", &subString);
-  char* userId = strtok_r(NULL, " ", &subString);
-  
-  return userId;
+  strtok_r(auxSocketName, "_", &subString);
+  return subString;
 }
