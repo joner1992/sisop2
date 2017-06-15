@@ -116,7 +116,34 @@ void connectAuxSocket() {
 
 }
 
+char *adaptEntry(char *cmd) {
+  for(int i = 0; i < BUFFERSIZE; i++) {
+    if(strcmp(cmd[i], ' ') == 0 || strcmp(cmd[i], '\n') == 0){
+      cmd[i] = '#';
+    }
+    else if(strcmp(cmd[i], '\0') == 0) {
+      return cmd;
+    }
+  }
+}
 
+void *auxSocketFunctions() {
+  char buffer[BUFFERSIZE];
+  char auxBuffer[BUFFERSIZE];
+  while(1) {
+    bzero(buffer, BUFFERSIZE);
+    printf(">> ");
+    fgets(buffer, BUFFERSIZE, stdin);
+    adaptEntry(buffer);
+    n = write(sockfd, buffer, strlen(buffer));
+    if (n == ERROR) {
+      perror("ERROR writing to socket\n");
+      exit(ERROR);
+    }
+
+
+  }
+}
 
 int main(int argc, char *argv[]) {
 
@@ -141,6 +168,14 @@ int main(int argc, char *argv[]) {
     connectAuxSocket();
 
 
+    //AUX socket para comandos, upload e download
+    pthread_t auxSocketThread;
+    pthread_attr_t attributesAuxSocketThread;
+    pthread_attr_init(&attributesAuxSocketThread);
+    pthread_create(&auxSocketThread,&attributesAuxSocketThread,auxSocketFunctions,NULL);    
+
+
+    //Normal thread para sync
 
     //pthread_t readWriteThread;
     //pthread_attr_t attributesReadWriteThread;
