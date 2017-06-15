@@ -119,6 +119,10 @@ void *auxClientThread(void* auxThread){
     if (n == ERROR) {
       printf("ERROR reading from socket");
     }
+    else {
+      printf("%s", buffer);
+    }
+
     
     char *forIterator;
     char *subString;
@@ -128,6 +132,7 @@ void *auxClientThread(void* auxThread){
     int numCommands;
     
     for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)){
+       printf("ENTROU FOR");
        if (numCommands == 0){
 			    strcpy(command, forIterator);
 		    }

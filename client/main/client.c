@@ -117,14 +117,17 @@ void connectAuxSocket() {
 }
 
 char *adaptEntry(char *cmd) {
-  for(int i = 0; i < BUFFERSIZE; i++) {
-    if(strcmp(cmd[i], ' ') == 0 || strcmp(cmd[i], '\n') == 0){
-      cmd[i] = '#';
-    }
-    else if(strcmp(cmd[i], '\0') == 0) {
-      return cmd;
+  printf("%s", cmd);
+  char aux[BUFFERSIZE];
+  strcpy(aux, cmd);
+  int i;
+  for(i = 0; i<sizeof(aux); i++) {
+    if(aux[i] == ' ' || aux[i] == '\n'){
+      aux[i] = '#';
     }
   }
+  printf("%s\n", aux);
+  return aux;
 }
 
 void *auxSocketFunctions() {
@@ -134,8 +137,8 @@ void *auxSocketFunctions() {
     bzero(buffer, BUFFERSIZE);
     printf(">> ");
     fgets(buffer, BUFFERSIZE, stdin);
-    adaptEntry(buffer);
-    n = write(sockfd, buffer, strlen(buffer));
+    //adaptEntry(buffer);
+    n = write(aux_sockfd, buffer, strlen(buffer));
     if (n == ERROR) {
       perror("ERROR writing to socket\n");
       exit(ERROR);
@@ -184,7 +187,7 @@ int main(int argc, char *argv[]) {
     
 
 
-    //pthread_join(readWriteThread, NULL);
+    pthread_join(auxSocketThread, NULL);
         
     //close(sockfd);
 
