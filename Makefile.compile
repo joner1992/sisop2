@@ -5,6 +5,7 @@ SRC_DIR=src/
 MAIN_DIR=main/
 CLIENT_DIR=./client/
 SERVER_DIR=./server/
+CLIENTS_FOLDERS=./clientDirectories/
 UTILS_SRC=./utils/src/
 UTILS_BIN=./utils/bin/
 CFLAGS=-m32 -c -pthread
@@ -40,6 +41,7 @@ phony-client:
 
 phony-server:
 	mkdir -p $(SERVER_DIR)$(BIN_DIR)
+	mkdir -p $(CLIENTS_FOLDERS)
 
 phony-utils:
 	mkdir -p $(UTILS_BIN)
