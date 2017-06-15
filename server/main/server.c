@@ -8,6 +8,7 @@ struct sockaddr_in serv_addr;
 int server_port;
 // Queue for clients structs
 FILA2 clientList;
+FILA2 auxSocketsList;
 pthread_mutex_t userVerificationMutex;
 
 
@@ -18,51 +19,33 @@ void initializeUserList() {
   }
 }
 
-int verifyUserAuthentication(char *buffer, int newsockfd) {
-  if(searchForUserId(&clientList, buffer) == ERROR) {
-    Client_Info* client_struct = (Client_Info *) malloc(sizeof(Client_Info));
-    //se não existe gerar diretório para user
-    createDirectory(buffer);
-    strcpy(client_struct->userId, buffer);
-    client_struct->logged_in = 1;
-    client_struct->devices[0] = newsockfd;
-    client_struct->devices[1] = -1;
-    AppendFila2(&clientList, (void *) client_struct);
+void initializeAuxSocketsList() {
+  if(CreateFila2(&auxSocketsList) != LISTSUCCESS) { // 0 = linked list initialized successfully
+    perror("ERROR initializing linked list");
+    exit(ERROR);
   }
-  else {
-  // //criar thread read and write para user
-    Client_Info* client_struct = (Client_Info*) GetAtIteratorFila2(&clientList);
-    pthread_mutex_lock(&client_struct->loginMutex);
-      if(!client_struct->logged_in) {
-        if(client_struct->devices[0] != newsockfd && client_struct->devices[1] != newsockfd) {
-          if(client_struct->devices[0] == -1) {
-            client_struct -> devices[0] = newsockfd;
-          }
-          else {
-            client_struct->devices[1] = newsockfd;
-          }
-        }
-        client_struct->logged_in = 1;
-      }
-      else {
-        if(client_struct->devices[0] == -1) {
-          client_struct->devices[0] = newsockfd;
-        }
-        else if(client_struct->devices[1] == -1){
-          client_struct->devices[1] = newsockfd;
-        }
-        else {
-          printf("Client %s reached the limit of devices connected\n\n", client_struct->userId);
-          disconnectClient(newsockfd);
-          close(newsockfd);
-          return ERROR;
-        }
-      }
-    pthread_mutex_unlock(&client_struct->loginMutex);
+}
 
+
+int verifyAuxSocket(char *buffer) {
+  if(buffer[0] == 'a' && buffer[1] == 'u' && buffer[2] == 'x'){
+    return SUCCESS;
+    
   }
-  pthread_mutex_unlock(&userVerificationMutex);
-  return SUCCESS;
+  return ERROR;
+  
+}
+
+int verifyUserAuthentication(char *buffer, int newsockfd) {
+  
+  if(searchForUserId(&clientList, buffer) == SUCCESS) {
+    //cria uma thread pro SYNC e soma 1 no num_devices do user
+    //
+    return SUCCESS;
+  }
+  return ERROR;
+
+  
 }
 
 int getPort(char *argv) {
@@ -105,16 +88,8 @@ void *readUser(void* arg) {
 
   //RECEIVE FILE AND SYNC
   while(1){
-    //READ FROM THE USER
-    bzero(buffer, BUFFERSIZE);
-    n = read(newsockfd, buffer, BUFFERSIZE);
-    if (n == ERROR) {
-      printf("ERROR reading from socket\n");
-      exit(ERROR);
-    } 
-
-    if(n != 0)
-      printf("RECEBEU: %s\n", buffer);
+   
+   
   }
 }
 
@@ -131,17 +106,21 @@ void *writeUser(void* arg){
     //WRITE TO THE USER
     bzero(buffer, BUFFERSIZE);
 
-    printf("Write your message to the client: ");
-    fgets(buffer, BUFFERSIZE, stdin);
-
-    n = write(newsockfd, buffer, strlen(buffer));
-    if (n == ERROR) {
-      perror("ERROR writing to socket\n");
-      exit(ERROR);
-    }
-
-    printf("ENVIOU: %s\n", buffer);
+     //void void
   }
+}
+
+void *auxClientThread(void* auxThread){
+  //fazer cast da estrutura
+  //int *newsockfd_ptr = (int *) arg; 
+  //int newsockfd = *newsockfd_ptr; 
+  
+  //switch de comandos
+  //upload
+  //download
+  //list
+  //exit
+  return;
 }
 
 void *acceptClient() {
@@ -165,24 +144,40 @@ void *acceptClient() {
       printf("ERROR reading from socket");
     }
 
-    // //verificar se user já existe na lista
+    
     pthread_mutex_lock(&userVerificationMutex);
-      if(verifyUserAuthentication(buffer, newsockfd) != ERROR) {
-        //CREATE READING THREAD
-        pthread_t readThread;
-        pthread_attr_t attributesReadThread;
-        pthread_attr_init(&attributesReadThread);
-        pthread_create(&readThread,&attributesReadThread,readUser,&newsockfd);
+    if(verifyAuxSocket(buffer) == SUCCESS){
+      char *auxUserId = cropUserId(buffer);
+      
+      clientThread *auxSocket = (clientThread*) malloc(sizeof(clientThread));
+      strcpy(auxSocket->userId, auxUserId);
+      auxSocket->socketId = newsockfd;
+      AppendFila2(&auxSocketsList, (void *) auxSocket);
+      
+      pthread_mutex_unlock(&userVerificationMutex);
         
-        //CREATE WRITING THREAD
-        pthread_t writeThread;
-        pthread_attr_t attributesWriteThread;
-        pthread_attr_init(&attributesWriteThread);
-        pthread_create(&writeThread,&attributesReadThread,writeUser,&newsockfd);
-      }
+      //cria thread auxiliar para download/upload/comandos
+      pthread_t auxThread;
+      pthread_attr_t attributesAuxThread;
+      pthread_attr_init(&attributesAuxThread);
+      
+      
+      pthread_create(&auxThread,&attributesAuxThread, auxClientThread, &auxSocket);
+      
+      //criar uma thread e passa newsockfd e userID
+      //download/upload/comandos
+    
+      return SUCCESS;
+    }
+    else if(verifyUserAuthentication(buffer, newsockfd) != ERROR) {
+      //Criar struct Client_Info e gerar diretório
+      // sync
+      
+      pthread_mutex_unlock(&userVerificationMutex);
+    }
+    
 
-      // pthread_join(readThread, NULL);
-      // pthread_join(writeThread, NULL);
+
 
       // close(newsockfd);
   }
@@ -194,6 +189,7 @@ int main(int argc, char *argv[])
   if(validateServerArguments(argc, argv) != ERROR) 
   {
     initializeUserList();
+    initializeAuxSocketsList();
     if((server_port = getPort(argv[2])) == ERROR) {
       printf ("ERROR on attributing the port");
       return ERROR;
@@ -214,6 +210,8 @@ int main(int argc, char *argv[])
 
     pthread_join(acceptThread, NULL);
     
+    
+    
     //close(sockfd);
   }
   else 
@@ -222,4 +220,6 @@ int main(int argc, char *argv[])
   }        
   return 0;
 }
+
+
 

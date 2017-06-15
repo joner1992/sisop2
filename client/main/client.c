@@ -7,13 +7,29 @@ char userId[MAXNAME];
 struct sockaddr_in serv_addr;
 struct hostent *server;
 
+int aux_sockfd, m;
+struct sockaddr_in aux_serv_addr;
+struct hostent *aux_server;
+
+
+
 FILE *file;
 
-void getHost(char *argv) {
+void setHost(char *argv) {
   server = gethostbyname(argv);
   
   if (server == NULL) {
     perror("ERROR, no such host\n");
+    exit(ERROR);
+  }
+  
+}
+
+void setAuxHost(char *argv){
+  aux_server = gethostbyname(argv);
+  
+  if (aux_server == NULL) {
+    perror("ERROR, no such host for aux_socket");
     exit(ERROR);
   }
 }
@@ -28,7 +44,7 @@ int getPort(char *argv) {
 
 }
 
-void getUserId(char *argv){
+void setUserId(char *argv){
   if(strlen(argv) > MAXNAME) {
     perror("ERROR username exceeds maximum length");
     exit(ERROR);
@@ -41,6 +57,14 @@ void createSocket() {
       perror("ERROR opening socket\n");
       exit(ERROR);
     } 
+
+}
+
+void createAuxSocket(){
+  if((aux_sockfd = socket(AF_INET, SOCK_STREAM, 0)) == ERROR) {
+    perror("ERROR opening aux socket\n");
+    exit(ERROR);
+  }
 }
 
 void connectSocket() {
@@ -66,108 +90,47 @@ void connectSocket() {
 
 }
 
-void _send(FILE *file) {
+void connectAuxSocket() {
     char buffer[BUFFERSIZE];
-    
-    bzero(buffer, BUFFERSIZE);
-    
-    fgets(buffer, BUFFERSIZE, file);
-    
-    if (write(sockfd, buffer, strlen(buffer)))
+    int n;
+    aux_serv_addr.sin_family = AF_INET;  
+    aux_serv_addr.sin_port = htons(server_port);    
+    aux_serv_addr.sin_addr = *((struct in_addr *)aux_server->h_addr);
+    bzero(&(serv_addr.sin_zero), 8); 
+
+    if (connect(aux_sockfd,(struct sockaddr *) &aux_serv_addr,sizeof(aux_serv_addr)) < 0) 
     {
-      perror("ERROR writing to socket\n");
+      perror("ERROR connecting to server\n");
       exit(ERROR);
-    } 
-}
-
-void _read() {
-    char buffer[BUFFERSIZE];
-    bzero(buffer,BUFFERSIZE);
+    }
     
-    if (read(sockfd, buffer, BUFFERSIZE)) {
-      perror("ERROR reading from socket\n");
-      exit(ERROR);
-    } 
-
-    printf("%s\n",buffer);
-}
-
-void *readWriteUser() {
-
-  int n;  
-  char buffer[BUFFERSIZE];
-
-  //RECEIVE FILE AND SYNC
-
-  while(1){
-    //READ FROM THE USER
     bzero(buffer, BUFFERSIZE);
-    n = read(sockfd, buffer, BUFFERSIZE);
-    if (n == ERROR) {
-      printf("ERROR reading from socket");
-      exit(ERROR);
-    } 
-
-    if(strcmp(buffer, DISCONNECTED) == 0){
-      printf("BYE!\n");
-      close(sockfd);
-      exit(SUCCESS);
-    }
-
-    if(n != 0){
-      printf("RECEBEU: %s\n", buffer);
-    }
-
-    bzero(buffer, BUFFERSIZE);
-
-    //READ SOMETHING FROM THE INPUT
-    printf("Cliente manda: ");
-    fgets(buffer,BUFFERSIZE,stdin);
-
+    strcat(buffer, "aux_");
+    strcat(buffer, userId);
+    
     n = write(sockfd, buffer, strlen(buffer));
     if (n == ERROR) {
       perror("ERROR writing to socket\n");
       exit(ERROR);
     }
 
-    printf("ENVIOU: %s\n", buffer);
-
-
-  }
 }
 
-void *writeUser(){
 
-  int n;
-  char buffer[BUFFERSIZE];
-
-  //SEND FILE AND SYNC
-
-  while(1){
-    //WRITE TO THE USER
-    bzero(buffer, BUFFERSIZE);
-
-    //READ SOMETHING FROM THE INPUT
-    printf("Cliente manda: ");
-    fgets(buffer,BUFFERSIZE,stdin);
-
-    n = write(sockfd, buffer, strlen(buffer));
-    if (n == ERROR) {
-      perror("ERROR writing to socket\n");
-      exit(ERROR);
-    }
-
-    printf("ENVIOU: %s\n", buffer);
-  }
-}
 
 int main(int argc, char *argv[]) {
 
   if(validateClientArguments(argc, argv) != ERROR) {
     
-    getHost(argv[2]);
-    getUserId(argv[6]);
+    setHost(argv[2]);
+    setUserId(argv[6]);
     createSocket();
+    
+    
+    
+    setAuxHost(argv[2]);
+    setAuxHost(argv[2]);
+    createAuxSocket();
 
     if((server_port = getPort(argv[4])) == ERROR ) {
       perror("ERROR bad port configuration\n");
@@ -175,23 +138,18 @@ int main(int argc, char *argv[]) {
     }
     
     connectSocket();
+    connectAuxSocket();
 
-    //CREATE READING/WRITING THREAD
-    pthread_t readWriteThread;
-    pthread_attr_t attributesReadWriteThread;
-    pthread_attr_init(&attributesReadWriteThread);
-    pthread_create(&readWriteThread,&attributesReadWriteThread,readWriteUser,NULL);
-    
-    //  printf("Opening file ");
-    //  file = fopen("./test.txt", "r");
-   
-    // if(file) {
-    //   _send(file);
-    // }
-    
-    // _read();
 
-    pthread_join(readWriteThread, NULL);
+
+    //pthread_t readWriteThread;
+    //pthread_attr_t attributesReadWriteThread;
+    //pthread_attr_init(&attributesReadWriteThread);
+    //pthread_create(&readWriteThread,&attributesReadWriteThread,readWriteUser,NULL);
+    
+
+
+    //pthread_join(readWriteThread, NULL);
         
     //close(sockfd);
 
@@ -201,8 +159,5 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
-    
-	
-
    
     

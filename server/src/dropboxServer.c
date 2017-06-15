@@ -9,16 +9,6 @@ void sync_server() {
   return;
 }
 
-void receive_file(char *file) {
-  return;
-}
-
-void send_file(char *file){
-  return;
-}
-
-
-
 /* UTILITARY FUNCTIONS FOR SERVER */
 int validateServerArguments(int argc, char *argv[]) {
   int exit = ERROR;
@@ -56,7 +46,7 @@ int searchForUserId(PFILA2 fila, char *userId) {
     Client_Info *clientWanted;
     clientWanted = (Client_Info*) GetAtIteratorFila2(fila);
     if (strcmp(clientWanted->userId, userId) == 0) {
-      return LISTSUCCESS;
+      return SUCCESS;
     }
     else {
       int iterator = 0;
@@ -69,7 +59,7 @@ int searchForUserId(PFILA2 fila, char *userId) {
         else {
           clientWanted = (Client_Info*) clientFound;
           if (strcmp(clientWanted->userId, userId) == 0) {
-            return LISTSUCCESS;
+            return SUCCESS;
           }
         }
       }
@@ -103,3 +93,10 @@ void disconnectClient(int newsockfd) {
   }
 }
 
+
+char *cropUserId(char *auxSocketName) {
+  char *subString = strtok (auxSocketName,"_"); // aux_Bica aux_NULLBica
+  strtok(NULL, subString); // Bica\n
+  printf("UserID = %s\n", subString);
+  return subString;
+}
