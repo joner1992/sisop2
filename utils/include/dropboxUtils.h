@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <pthread.h>
+#include <sys/stat.h>
 #include "./support.h"
 
 #define SUCCESS 1
@@ -19,3 +20,7 @@
 #define BUFFERSIZE 1024
 #define DEFAULTPORT 12001
 #define DISCONNECTED "BYE!"
+#define SERVER 1
+#define CLIENT 0
+
+void createDirectory(char *argv, int server);

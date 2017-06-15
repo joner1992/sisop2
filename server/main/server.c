@@ -12,20 +12,12 @@ FILA2 auxSocketsList;
 pthread_mutex_t userVerificationMutex;
 
 
-void initializeUserList() {
-  if(CreateFila2(&clientList) != LISTSUCCESS) { // 0 = linked list initialized successfully
+void initializeList(PFILA2 list){
+  if(CreateFila2(&list) != LISTSUCCESS) { // 0 = linked list initialized successfully
     perror("ERROR initializing linked list");
     exit(ERROR);
   }
 }
-
-void initializeAuxSocketsList() {
-  if(CreateFila2(&auxSocketsList) != LISTSUCCESS) { // 0 = linked list initialized successfully
-    perror("ERROR initializing linked list");
-    exit(ERROR);
-  }
-}
-
 
 int verifyAuxSocket(char *buffer) {
   if(buffer[0] == 'a' && buffer[1] == 'u' && buffer[2] == 'x'){
@@ -36,15 +28,21 @@ int verifyAuxSocket(char *buffer) {
   
 }
 
-int verifyUserAuthentication(char *buffer, int newsockfd) {
+void verifyUserAuthentication(char *buffer, int newsockfd) {
   
   if(searchForUserId(&clientList, buffer) == SUCCESS) {
     //cria uma thread pro SYNC e soma 1 no num_devices do user
     //
-    return SUCCESS;
+    
+    
   }
-  return ERROR;
-
+  else {
+    Client_Info *firstTimeUser = (Client_Info*) malloc(sizeof(Client_Info));
+    strcpy(firstTimeUser->userId, buffer);
+    firstTimeUser->numDevices = 1;
+    initializeList(&(firstTimeUser->filesList));    
+    createDirectory(buffer, SERVER);
+  }
   
 }
 
@@ -117,21 +115,31 @@ void *auxClientThread(void* auxThread){
   char buffer[BUFFERSIZE];
   
   while(1){
+    
     bzero(buffer, BUFFERSIZE);
     n = read(newAuxThread->socketId, buffer, BUFFERSIZE);
     if (n == ERROR) {
       printf("ERROR reading from socket");
     }
     
+    char *forIterator;
     char *subString;
-    char *command = strtok_r(buffer, " ", &subString);
+    char *fileName;
+    char *fileContent;
+    char *command;
+    int numCommands;
     
-    //se command for NULL quer dizer que não achou o espaço no final, ou é list ou exit
-    if(command == NULL) {
-      //não achou nada não tinha espaço no final, logo é exit ou list
-    } else {
-      //talvez seja legal pensar em um delimitador no client substituindo no meio e no final
-      char *fileOrPath = strtok_r(NULL, '\0', &subString);
+    for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)){
+       if (numCommands == 0){
+			    strcpy(command, forIterator);
+		    }
+		    else if (numCommands == 1){
+			    strcpy(fileName, forIterator);
+		    }
+		    else{ //se usarmos
+			    strcpy(fileContent, forIterator);
+		    }
+		    numCommands++;
     }
     
     if(strcmp(command, "list") == 0) {
@@ -142,8 +150,8 @@ void *auxClientThread(void* auxThread){
       //chamar função pra upload passando fileOrPath
     } else if(strcmp(command, "download") == 0) {
       //chamar função pra download passando fileOrPath
-    } else if(strcmp(command, "list") == 0) {
-      
+    } else {
+      //erro leitura de comando
     }
   }
 }
@@ -189,20 +197,17 @@ void *acceptClient() {
       
       //criar uma thread e passa newsockfd e userID
       //download/upload/comandos
-    
-      return SUCCESS;
     }
-    else if(verifyUserAuthentication(buffer, newsockfd) != ERROR) {
-      //Criar struct Client_Info e gerar diretório
-      // sync
+    else {
+      verifyUserAuthentication(buffer, newsockfd);
       
       pthread_mutex_unlock(&userVerificationMutex);
+      
+      //Criar struct Client_Info e gerar diretório
+      // sync
     }
     
-
-
-
-      // close(newsockfd);
+    // close(newsockfd);
   }
 }
 
@@ -211,8 +216,8 @@ int main(int argc, char *argv[])
 { 
   if(validateServerArguments(argc, argv) != ERROR) 
   {
-    initializeUserList();
-    initializeAuxSocketsList();
+    initializeList(&clientList);
+    initializeList(&auxSocketsList);
     if((server_port = getPort(argv[2])) == ERROR) {
       printf ("ERROR on attributing the port");
       return ERROR;

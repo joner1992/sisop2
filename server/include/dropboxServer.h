@@ -1,6 +1,3 @@
-#include "../../utils/include/dropboxUtils.h"
-
-
 /************************************ 
 ********* HEADER PARA SERVER ********
 ************************************/
@@ -17,7 +14,7 @@ typedef struct	file_info	{
 typedef struct client	{
  int numDevices; // numeros de dispositivos de usuario
  char userId[MAXNAME]; // id do usuario no servidor, que devera ser unico. Informado pela linha de comando
- UserFiles file_info[MAXFILES]; //metadados de cada arquivo que o cliente possui no servidor
+ FILA2 filesList; //metadados de cada arquivo que o cliente possui no servidor
  int logged_in; // cliente esta logado ou nao
  pthread_mutex_t loginMutex;
 } Client_Info;
@@ -47,6 +44,5 @@ void send_file(char *file);
 
 int validateServerArguments(int argc, char *argv[]);
 int searchForUserId(PFILA2 fila, char *userId);
-void createDirectory(char *argv);
 char *cropUserId(char *auxSocketName);
 void disconnectClient(int newsockfd);

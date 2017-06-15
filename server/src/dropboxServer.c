@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <string.h>
-
 #include "../../utils/include/dropboxUtils.h"
 #include "../include/dropboxServer.h"
 
@@ -72,13 +69,6 @@ int searchForUserId(PFILA2 fila, char *userId) {
 
 }
 
-void createDirectory(char *argv) {
-  char root[50] = "mkdir -p ./sync_dir_";
-  strcat(root, argv);
-  system(root);  
-  printf("Directory ./sync_dir_%s created successfully.\n", argv);
-}
-
 void disconnectClient(int newsockfd) {
   
   int n;
@@ -92,7 +82,6 @@ void disconnectClient(int newsockfd) {
     exit(ERROR);
   }
 }
-
 
 char *cropUserId(char *auxSocketName) {
   char *subString;
