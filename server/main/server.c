@@ -111,16 +111,41 @@ void *writeUser(void* arg){
 }
 
 void *auxClientThread(void* auxThread){
+  int n;
   //fazer cast da estrutura
-  //int *newsockfd_ptr = (int *) arg; 
-  //int newsockfd = *newsockfd_ptr; 
+  clientThread *newAuxThread = auxThread;
+  char buffer[BUFFERSIZE];
   
-  //switch de comandos
-  //upload
-  //download
-  //list
-  //exit
-  return;
+  while(1){
+    bzero(buffer, BUFFERSIZE);
+    n = read(newAuxThread->socketId, buffer, BUFFERSIZE);
+    if (n == ERROR) {
+      printf("ERROR reading from socket");
+    }
+    
+    char *subString;
+    char *command = strtok_r(buffer, " ", &subString);
+    
+    //se command for NULL quer dizer que não achou o espaço no final, ou é list ou exit
+    if(command == NULL) {
+      //não achou nada não tinha espaço no final, logo é exit ou list
+    } else {
+      //talvez seja legal pensar em um delimitador no client substituindo no meio e no final
+      char *fileOrPath = strtok_r(NULL, '\0', &subString);
+    }
+    
+    if(strcmp(command, "list") == 0) {
+      //chamar função de list
+    } else if(strcmp(command, "exit") == 0) {
+      //chamar função de exit
+    } else if(strcmp(command, "upload") == 0) {
+      //chamar função pra upload passando fileOrPath
+    } else if(strcmp(command, "download") == 0) {
+      //chamar função pra download passando fileOrPath
+    } else if(strcmp(command, "list") == 0) {
+      
+    }
+  }
 }
 
 void *acceptClient() {
@@ -160,8 +185,6 @@ void *acceptClient() {
       pthread_t auxThread;
       pthread_attr_t attributesAuxThread;
       pthread_attr_init(&attributesAuxThread);
-      
-      
       pthread_create(&auxThread,&attributesAuxThread, auxClientThread, &auxSocket);
       
       //criar uma thread e passa newsockfd e userID
