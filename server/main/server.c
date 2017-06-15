@@ -13,7 +13,7 @@ pthread_mutex_t userVerificationMutex;
 
 
 void initializeList(PFILA2 list){
-  if(CreateFila2(&list) != LISTSUCCESS) { // 0 = linked list initialized successfully
+  if(CreateFila2(list) != LISTSUCCESS) { // 0 = linked list initialized successfully
     perror("ERROR initializing linked list");
     exit(ERROR);
   }
