@@ -117,7 +117,6 @@ void connectAuxSocket() {
 }
 
 char *adaptEntry(char *cmd) {
-  printf("%s", cmd);
   char aux[BUFFERSIZE];
   strcpy(aux, cmd);
   int i;
@@ -126,7 +125,6 @@ char *adaptEntry(char *cmd) {
       aux[i] = '#';
     }
   }
-  printf("%s\n", aux);
   return aux;
 }
 
@@ -137,14 +135,14 @@ void *auxSocketFunctions() {
     bzero(buffer, BUFFERSIZE);
     printf(">> ");
     fgets(buffer, BUFFERSIZE, stdin);
-    //adaptEntry(buffer);
+    //coloca # entre os espaços e no final
+    strcpy(buffer, adaptEntry(buffer));
+
     n = write(aux_sockfd, buffer, strlen(buffer));
     if (n == ERROR) {
       perror("ERROR writing to socket\n");
       exit(ERROR);
     }
-
-
   }
 }
 

@@ -112,37 +112,36 @@ void *auxClientThread(void* auxThread){
   int n;
   char buffer[BUFFERSIZE];
   clientThread *newAuxThread = auxThread;
+  char *forIterator;
+  char *subString;
+  char fileName[BUFFERSIZE];
+  char fileContent[BUFFERSIZE];
+  char command[BUFFERSIZE];
+  int numCommands;
 
   while(1){ 
     bzero(buffer, BUFFERSIZE);
+    bzero(command, BUFFERSIZE);
+    bzero(fileName, BUFFERSIZE);
+    bzero(fileContent, BUFFERSIZE);
+    numCommands = 0;
+
     n = read(newAuxThread->socketId, buffer, BUFFERSIZE);
     if (n == ERROR) {
       printf("ERROR reading from socket");
     }
-    else {
-      printf("%s", buffer);
-    }
-
-    
-    char *forIterator;
-    char *subString;
-    char *fileName;
-    char *fileContent;
-    char command[BUFFERSIZE];
-    int numCommands;
-    
+   
     for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)){
-       printf("ENTROU FOR");
-       if (numCommands == 0){
-			    strcpy(command, forIterator);
-		    }
-		    else if (numCommands == 1){
-			    strcpy(fileName, forIterator);
-		    }
-		    else{ //se usarmos
-			    strcpy(fileContent, forIterator);
-		    }
-		    numCommands++;
+      if (numCommands == 0){
+			  strcpy(command, forIterator);
+		  }
+		  else if (numCommands == 1){
+			  strcpy(fileName, forIterator);
+		  }
+		  else{ //se usarmos
+			  strcpy(fileContent, forIterator);
+		  }
+		  numCommands++;
     }
     
     if(strcmp(command, "list") == 0) {
