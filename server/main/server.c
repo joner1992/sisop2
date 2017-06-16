@@ -34,6 +34,7 @@ int verifyUserAuthentication(char *buffer, int newsockfd) {
     //modifica logged_in e numDevices e verifica se pode logar
     if(secondLogin(&clientList, buffer) == ERROR){
       //se retornou erro é porque já tem numDevices máximos
+      printf("retornou maxdevices error em secondLogin\n");
       return ERROR;
     } else {
       //cria thread
@@ -182,15 +183,15 @@ void *acceptClient() {
     {
       perror("ERROR on accept client");
       exit(ERROR);
-    }
-
+    } 
+    
     pthread_mutex_lock(&userVerificationMutex);
-    // READ/WRITE (WILL NEED THREADS)
+
     bzero(buffer, BUFFERSIZE);
     n = read(newsockfd, buffer, BUFFERSIZE);
     if (n == ERROR) {
       close(newsockfd);
-    }
+    }    
     
     if(verifyAuxSocket(buffer) == SUCCESS){
 
@@ -208,20 +209,29 @@ void *acceptClient() {
       pthread_create(&auxThread,&attributesAuxThread, auxClientThread, (void *) auxSocket);
 
     }
-    else {
-      if(verifyUserAuthentication(buffer, newsockfd) == SUCCESS){
-        
+    else if(verifyUserAuthentication(buffer, newsockfd) == SUCCESS){
+        bzero(buffer, BUFFERSIZE);
+        strcpy(buffer, "OK");
+        n = write(newsockfd, buffer, BUFFERSIZE);
+        if (n == ERROR) {
+          perror("ERROR writing to socket\n");
+          exit(ERROR);
+        }
+        printf("enviou ok\n");
       } else {
-        //NÃO TA FECHANDO CONEXAO, DESCOBRIR PQ
-        printf("erro limite\n");
-        shutdown(newsockfd, 2);
-        close(newsockfd);
+        bzero(buffer, BUFFERSIZE);
+        strcpy(buffer, "NOTOK");
+        n = write(newsockfd, buffer, BUFFERSIZE);
+        if (n == ERROR) {
+          perror("ERROR writing to socket\n");
+          exit(ERROR);
+        }
+        printf("enviou notok\n");
       }
-
       pthread_mutex_unlock(&userVerificationMutex);
             
       // sync
-    }
+    
     
     // close(newsockfd);
   }

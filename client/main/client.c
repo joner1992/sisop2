@@ -67,7 +67,7 @@ void createAuxSocket(){
   }
 }
 
-void connectSocket() {
+int connectSocket() {
     char buffer[BUFFERSIZE];
     int n;
     serv_addr.sin_family = AF_INET;  
@@ -82,10 +82,31 @@ void connectSocket() {
     }
     bzero(buffer, BUFFERSIZE);
     strcpy(buffer, userId);
-    n = write(sockfd, buffer, strlen(buffer));
+    n = write(sockfd, buffer, BUFFERSIZE);
     if (n == ERROR) {
       perror("ERROR writing to socket\n");
       exit(ERROR);
+    }
+
+    while(1){
+      //verificar aqui porque não ta respondendo
+      bzero(buffer, BUFFERSIZE);
+      n = read(sockfd, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR writing to socket\n");
+        exit(ERROR);
+      }
+
+      printf("buffer: %s\n", buffer);
+      printf("sockfd: %d\n", sockfd);
+
+      if(strcmp(buffer, "OK") == 0){
+        printf("OK");
+        return SUCCESS;
+      } else if(strcmp(buffer, "NOTOK") == 0) {
+        printf("NOTOK");
+        return ERROR;
+      } 
     }
 }
 
@@ -107,7 +128,7 @@ void connectAuxSocket() {
     strcat(buffer, "aux_");
     strcat(buffer, userId);
     
-    n = write(aux_sockfd, buffer, strlen(buffer));
+    n = write(aux_sockfd, buffer, BUFFERSIZE);
     if (n == ERROR) {
       perror("ERROR writing to socket\n");
       exit(ERROR);
@@ -137,7 +158,7 @@ void *auxSocketFunctions() {
     //coloca # entre os espaços e no final
     strcpy(buffer, adaptEntry(buffer));
 
-    n = write(aux_sockfd, buffer, strlen(buffer));
+    n = write(aux_sockfd, buffer, BUFFERSIZE);
     if (n == ERROR) {
       perror("ERROR writing to socket\n");
       exit(ERROR);
@@ -164,15 +185,17 @@ int main(int argc, char *argv[]) {
       exit(ERROR);
     }
     
-    connectSocket();
-    connectAuxSocket();
-
-
-    //AUX socket para comandos, upload e download
-    pthread_t auxSocketThread;
-    pthread_attr_t attributesAuxSocketThread;
-    pthread_attr_init(&attributesAuxSocketThread);
-    pthread_create(&auxSocketThread,&attributesAuxSocketThread,auxSocketFunctions,NULL);    
+    if(connectSocket() == SUCCESS) {
+      connectAuxSocket();
+      //AUX socket para comandos, upload e download
+      pthread_t auxSocketThread;
+      pthread_attr_t attributesAuxSocketThread;
+      pthread_attr_init(&attributesAuxSocketThread);
+      pthread_create(&auxSocketThread,&attributesAuxSocketThread,auxSocketFunctions,NULL);    
+      pthread_join(auxSocketThread, NULL);
+    } else {
+      printf("\nMax connections reached\n");
+    }
 
 
     //Normal thread para sync
@@ -181,11 +204,7 @@ int main(int argc, char *argv[]) {
     //pthread_attr_t attributesReadWriteThread;
     //pthread_attr_init(&attributesReadWriteThread);
     //pthread_create(&readWriteThread,&attributesReadWriteThread,readWriteUser,NULL);
-    
-
-
-    pthread_join(auxSocketThread, NULL);
-        
+            
     //close(sockfd);
 
   } else {
