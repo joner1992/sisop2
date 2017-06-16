@@ -38,6 +38,7 @@ int validateServerArguments(int argc, char *argv[]) {
 int searchForUserId(PFILA2 fila, char *userId) {
   int first;
   first = FirstFila2(fila);
+  
   if (first == LISTSUCCESS) {
     void *clientFound;
     Client_Info *clientWanted;
@@ -51,11 +52,109 @@ int searchForUserId(PFILA2 fila, char *userId) {
         iterator = NextFila2(fila);
         clientFound = GetAtIteratorFila2(fila);
         if (clientFound == NULL) {
+            return ERROR;
+        }
+        else {
+          clientWanted = (Client_Info*) clientFound;
+          if (strcmp(clientWanted->userId, userId) == 0) {
+              return SUCCESS;
+          }
+        }
+      }
+      return ERROR;
+    }
+  }
+  else {
+     return ERROR;
+  }
+}
+
+int secondLogin(PFILA2 fila, char *userId) {
+  int first;
+  first = FirstFila2(fila);
+
+  if (first == LISTSUCCESS) {
+    void *clientFound;
+    Client_Info *clientWanted;
+    clientWanted = (Client_Info*) GetAtIteratorFila2(fila);
+    if (strcmp(clientWanted->userId, userId) == 0) {
+      //modificado para somar um no numDevices e setar logged_in
+      if(clientWanted->numDevices >= MAXDEVICES){
+        return ERROR;
+      } else {
+        clientWanted->numDevices = clientWanted->numDevices + 1;
+        clientWanted->logged_in = 1;
+        return SUCCESS;
+      }
+    }
+    else {
+      int iterator = 0;
+      while (iterator == 0) {
+        iterator = NextFila2(fila);
+        clientFound = GetAtIteratorFila2(fila);
+        if (clientFound == NULL) {
           return ERROR;
         }
         else {
           clientWanted = (Client_Info*) clientFound;
           if (strcmp(clientWanted->userId, userId) == 0) {
+            //modificado para somar um no numDevices e setar logged_in
+            if(clientWanted->numDevices >= MAXDEVICES){
+              return ERROR;
+            } else {
+              clientWanted->numDevices = clientWanted->numDevices + 1;
+              clientWanted->logged_in = 1;
+              return SUCCESS;
+            }
+          }
+        }
+      }
+      return ERROR;
+    }
+  }
+  else {
+    return ERROR;
+  }
+}
+
+int removeClient(PFILA2 fila, char *userId) {
+  int first;
+  first = FirstFila2(fila);
+
+  if (first == LISTSUCCESS) {
+    void *clientFound;
+    Client_Info *clientWanted;
+    clientWanted = (Client_Info*) GetAtIteratorFila2(fila);
+    if (strcmp(clientWanted->userId, userId) == 0) {
+      //modificado para subtrair um no numDevices e setar logged_in
+      clientWanted->numDevices = clientWanted->numDevices - 1;
+      if(clientWanted->numDevices == 0){
+        clientWanted->logged_in = 0;
+        DeleteAtIteratorFila2(fila);
+      } else {
+        clientWanted->logged_in = 1;
+      }
+      return SUCCESS;
+    }
+    else {
+      int iterator = 0;
+      while (iterator == 0) {
+        iterator = NextFila2(fila);
+        clientFound = GetAtIteratorFila2(fila);
+        if (clientFound == NULL) {
+          return ERROR;
+        }
+        else {
+          clientWanted = (Client_Info*) clientFound;
+          if (strcmp(clientWanted->userId, userId) == 0) {
+            //modificado para subtrair um no numDevices e setar logged_in
+            clientWanted->numDevices = clientWanted->numDevices - 1;
+            if(clientWanted->numDevices == 0){
+              clientWanted->logged_in = 0;
+              DeleteAtIteratorFila2(fila);
+            } else {
+              clientWanted->logged_in = 1;
+            }
             return SUCCESS;
           }
         }
@@ -66,20 +165,25 @@ int searchForUserId(PFILA2 fila, char *userId) {
   else {
     return ERROR;
   }
-
 }
 
-void disconnectClient(int newsockfd) {
-  
+void disconnectClientFromServer(int newsockfd, char *userId, PFILA2 fila, int existedBefore) {
   int n;
   char buffer[BUFFERSIZE];
   bzero(buffer, BUFFERSIZE);
   strcpy(buffer, DISCONNECTED);
+
+  //verify if numDevices == 1, if it is, set it to 0 and change logged_in to 0, if numDevices == 2, set it to 1 and maintain logged_in in 1
+  if(existedBefore == 1){
+    removeClient(fila, userId);
+  }
   
+  //send message to the user telling him to finish his sockets
   n = write(newsockfd, buffer, strlen(buffer));
   if (n == ERROR) {
-  perror("ERROR writing to socket\n");
-    exit(ERROR);
+    perror("ERROR writing to socket\n");
+  } else {
+    printf("disconnected client\n");
   }
 }
 

@@ -9,8 +9,9 @@ int server_port;
 // Queue for clients structs
 FILA2 clientList;
 FILA2 auxSocketsList;
+pthread_mutex_t acceptingConnection;
 pthread_mutex_t userVerificationMutex;
-
+pthread_mutex_t disconnectMutex;
 
 void initializeList(PFILA2 list){
   if(CreateFila2(list) != LISTSUCCESS) { // 0 = linked list initialized successfully
@@ -28,20 +29,28 @@ int verifyAuxSocket(char *buffer) {
   return ERROR;
 }
 
-void verifyUserAuthentication(char *buffer, int newsockfd) {
-  
+int verifyUserAuthentication(char *buffer, int newsockfd) {
   if(searchForUserId(&clientList, buffer) == SUCCESS) {
-    //cria uma thread pro SYNC e soma 1 no num_devices do user
-    //
-    
-    
+    //modifica logged_in e numDevices e verifica se pode logar
+    if(secondLogin(&clientList, buffer) == ERROR){
+      //se retornou erro é porque já tem numDevices máximos
+      return ERROR;
+    } else {
+      //cria thread
+      return SUCCESS;
+    }
   }
   else {
     Client_Info *firstTimeUser = (Client_Info*) malloc(sizeof(Client_Info));
     strcpy(firstTimeUser->userId, buffer);
     firstTimeUser->numDevices = 1;
-    initializeList(&(firstTimeUser->filesList));    
+    firstTimeUser->logged_in = 1;
+    initializeList(&(firstTimeUser->filesList));
+    //não tinhamos colocado na fila realmente
+    AppendFila2(&clientList, (void *) firstTimeUser);    
     createDirectory(buffer, SERVER);
+    
+    return SUCCESS;
   }
   
 }
@@ -147,7 +156,11 @@ void *auxClientThread(void* auxThread){
     if(strcmp(command, "list") == 0) {
       printf("chamou list\n");
     } else if(strcmp(command, "exit") == 0) {
-      printf("chamou exit\n");
+      pthread_mutex_lock(&disconnectMutex);
+        disconnectClientFromServer(newAuxThread->socketId, newAuxThread->userId, &clientList, DISCONNECTEXISTEDBEFORE);
+      pthread_mutex_unlock(&disconnectMutex);
+      //falta matar a thread do sync qndo tivermos tbm da lista de auxSockets
+      pthread_exit(NULL);
     } else if(strcmp(command, "upload") == 0) {
       printf("chamou upload com fileName = %s\n", fileName);
     } else if(strcmp(command, "download") == 0) {
@@ -164,27 +177,26 @@ void *acceptClient() {
     char buffer[BUFFERSIZE];
 
     client = sizeof(struct sockaddr_in);
+    
     if ((newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &client)) == ERROR)
     {
       perror("ERROR on accept client");
       exit(ERROR);
-    }  
-    
-    pthread_mutex_lock(&userVerificationMutex);
+    }
 
+    pthread_mutex_lock(&userVerificationMutex);
     // READ/WRITE (WILL NEED THREADS)
     bzero(buffer, BUFFERSIZE);
     n = read(newsockfd, buffer, BUFFERSIZE);
     if (n == ERROR) {
-      printf("ERROR reading from socket");
-    }    
+      close(newsockfd);
+    }
     
     if(verifyAuxSocket(buffer) == SUCCESS){
 
       clientThread *auxSocket = (clientThread*) malloc(sizeof(clientThread));
       strcpy(auxSocket->userId, cropUserId(buffer));
       auxSocket->socketId = newsockfd;
-
       AppendFila2(&auxSocketsList, (void *) auxSocket);
       
       pthread_mutex_unlock(&userVerificationMutex);
@@ -194,16 +206,20 @@ void *acceptClient() {
       pthread_attr_t attributesAuxThread;
       pthread_attr_init(&attributesAuxThread);
       pthread_create(&auxThread,&attributesAuxThread, auxClientThread, (void *) auxSocket);
-      
-      //criar uma thread e passa newsockfd e userID
-      //download/upload/comandos
+
     }
     else {
-      verifyUserAuthentication(buffer, newsockfd);
-      
+      if(verifyUserAuthentication(buffer, newsockfd) == SUCCESS){
+        
+      } else {
+        //NÃO TA FECHANDO CONEXAO, DESCOBRIR PQ
+        printf("erro limite\n");
+        shutdown(newsockfd, 2);
+        close(newsockfd);
+      }
+
       pthread_mutex_unlock(&userVerificationMutex);
-      
-      //Criar struct Client_Info e gerar diretório
+            
       // sync
     }
     

@@ -22,5 +22,8 @@
 #define DISCONNECTED "BYE!"
 #define SERVER 1
 #define CLIENT 0
+#define MAXDEVICES 2
+#define DISCONNECTEXISTEDBEFORE 1
+#define DISCONNECT 0
 
 void createDirectory(char *argv, int server);

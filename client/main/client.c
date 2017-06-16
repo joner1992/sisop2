@@ -87,7 +87,6 @@ void connectSocket() {
       perror("ERROR writing to socket\n");
       exit(ERROR);
     }
-
 }
 
 void connectAuxSocket() {

@@ -43,6 +43,10 @@ void send_file(char *file);
 /* ACIMA ESTÃO AS FUNCIONALIDADES MÍNIMAS PARA O SERVIDOR */
 
 int validateServerArguments(int argc, char *argv[]);
+//procura usuario na fila de clients
 int searchForUserId(PFILA2 fila, char *userId);
+//procura usuario, adiciona 1 a lista de devices conectados, logged_in = 1 
+int secondLogin(PFILA2 fila, char *userId);
+//recorta UserId do login auxiliar
 char *cropUserId(char *auxSocketName);
 void disconnectClient(int newsockfd);
