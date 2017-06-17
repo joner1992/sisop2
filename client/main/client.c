@@ -2,7 +2,7 @@
 #include "../include/dropboxClient.h"
 #include <stdio.h>
 
-int sockfd, n, server_port;
+int sockfd, n, server_port, clientSockfd, clientAuxSockfd;
 char userId[MAXNAME];
 struct sockaddr_in serv_addr;
 struct hostent *server;
@@ -75,7 +75,7 @@ int connectSocket() {
     serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
     bzero(&(serv_addr.sin_zero), 8); 
 
-    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+    if (clientSockfd = connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
     {
       perror("ERROR connecting to server\n");
       exit(ERROR);
@@ -115,7 +115,7 @@ void connectAuxSocket() {
     aux_serv_addr.sin_addr = *((struct in_addr *)aux_server->h_addr);
     bzero(&(serv_addr.sin_zero), 8); 
 
-    if (connect(aux_sockfd,(struct sockaddr *) &aux_serv_addr,sizeof(aux_serv_addr)) < 0) 
+    if (clientAuxSockfd = connect(aux_sockfd,(struct sockaddr *) &aux_serv_addr,sizeof(aux_serv_addr)) < 0) 
     {
       perror("ERROR connecting to server\n");
       exit(ERROR);
@@ -161,14 +161,18 @@ void *syncSocket() {
 
 void *auxSocketFunctions() {
   char buffer[BUFFERSIZE];
-
+  char bufferExit[BUFFERSIZE];
+  char socket[20];
+  char auxSocket[20];
   while(1) {
     bzero(buffer, BUFFERSIZE);
+    bzero(bufferExit, BUFFERSIZE);
+    bzero(socket, 20);
+    bzero(auxSocket, 20);
+
     printf(">> ");
     fgets(buffer, BUFFERSIZE, stdin);
-    //coloca # entre os espaços e no final
     strcpy(buffer, adaptEntry(buffer));
-
     n = write(aux_sockfd, buffer, BUFFERSIZE);
     if (n == ERROR) {
       perror("ERROR writing to socket\n");

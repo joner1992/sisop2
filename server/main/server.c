@@ -39,7 +39,7 @@ int verifyUserAuthentication(char *buffer, int newsockfd) {
     }
   }
   else {
-    Client_Info *firstTimeUser = (Client_Info*) malloc(sizeof(Client_Info));
+    ClientInfo *firstTimeUser = (ClientInfo*) malloc(sizeof(ClientInfo));
     strcpy(firstTimeUser->userId, buffer);
     firstTimeUser->numDevices = 1;
     firstTimeUser->logged_in = 1;
@@ -84,51 +84,19 @@ void bindServerSocket() {
   }
 }
 
-void *readUser(void* arg) {
-  
-  int *newsockfd_ptr = (int *) arg; 
-  int newsockfd = *newsockfd_ptr; 
-  int n;
-  char buffer[BUFFERSIZE];
-
-  //RECEIVE FILE AND SYNC
-  while(1){
-   
-   
-  }
-}
-
-void *writeUser(void* arg){
-
-  int *newsockfd_ptr = (int *) arg; 
-  int newsockfd = *newsockfd_ptr; 
-  int n;
-  char buffer[BUFFERSIZE];
-
-  //SEND FILE AND SYNC
-
-  while(1){
-    //WRITE TO THE USER
-    bzero(buffer, BUFFERSIZE);
-
-     //void void
-  }
-}
-
 void *syncClientThread(void* syncThread){
   int n;
   char buffer[BUFFERSIZE];
   clientThread *newSyncThread = syncThread;
 
   //colocar o código do sync aqui
-  int i = 1;
   while(1){
-    //ao tentar ler do socket, se retornar -1 significa que o socket foi fechado
-    bzero(buffer, BUFFERSIZE);
-    //faz a thread esperar 10 segundos para fazer a proxima sincronização
-    printf("sleep number: %d\n", i);
     sleep(10);
-    i++;
+    bzero(buffer, BUFFERSIZE);
+    n = write(newSyncThread->socketId, buffer, BUFFERSIZE);
+    if (n == ERROR) {
+      pthread_exit(NULL);
+    } 
   }
 }
 
@@ -174,9 +142,10 @@ void *auxClientThread(void* auxThread){
       //cliente pediu para se desconectar, da close nos 2 sockets e mata as 2 threads
       pthread_mutex_lock(&disconnectMutex);
         //flag DISCONNECTEDEXITEDBEFORE, remove from client lists the client or remove one of the devices
-        int disconnectAuxSocket = atoi(fileNameOrPort1);
-        int disconnectSyncSocket = atoi(port2);
-        disconnectClientFromServer(disconnectAuxSocket, disconnectSyncSocket, newAuxThread->userId, &clientList, DISCONNECTEXISTEDBEFORE);
+        int disconnectSyncSocket = atoi(fileNameOrPort1);
+        int disconnectAuxSocket = atoi(port2);
+        printf("disconnecting ports: aux %d and sync %d\n", disconnectAuxSocket, disconnectSyncSocket);
+        disconnectClientFromServer(disconnectAuxSocket, disconnectSyncSocket, newAuxThread->userId, &clientList, &auxSocketsList, &syncSocketsList, DISCONNECTEXISTEDBEFORE);
       pthread_mutex_unlock(&disconnectMutex);
       pthread_exit(NULL);
 
@@ -196,12 +165,14 @@ void *acceptClient() {
     char buffer[BUFFERSIZE];
 
     client = sizeof(struct sockaddr_in);
-    
     if ((newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &client)) == ERROR)
     {
       perror("ERROR on accept client");
       exit(ERROR);
     } 
+
+    printf("sockfd: %d\n", sockfd);
+    printf("newsockfd: %d\n", newsockfd);
     
     pthread_mutex_lock(&userVerificationMutex);
 
@@ -256,8 +227,6 @@ void *acceptClient() {
         }
       }
       pthread_mutex_unlock(&userVerificationMutex);
-      
-      // sync 
   }
 }
 
@@ -282,7 +251,7 @@ int main(int argc, char *argv[])
     bindServerSocket();
     // LISTEN
 
-    listen(sockfd, 5);
+    listen(sockfd, 50);
     printf("Server is listening at: %s:%d\n", inet_ntoa(serv_addr.sin_addr), (int) ntohs(serv_addr.sin_port));
 
     //ACCEPT CLIENT

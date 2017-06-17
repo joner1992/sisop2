@@ -17,7 +17,7 @@ typedef struct client	{
  FILA2 filesList; //metadados de cada arquivo que o cliente possui no servidor
  int logged_in; // cliente esta logado ou nao
  pthread_mutex_t loginMutex;
-} Client_Info;
+} ClientInfo;
 
 typedef struct auxclient {
  int socketId; // numeros de dispositivos de usuario
@@ -54,6 +54,10 @@ char *cropUserId(char *auxSocketName);
     se existedBefore
     0 = não existia o usuário no sistema, portanto não precisa retirar da lista
     1 = existia antes, portanto precisamos retirar ele da lista
+
+    clientList = lista de clientes do servidor atualmente
+    auxSocketsList = lista de sockets auxiliares no servidor atualmente
+    syncSocketList = lista de sockets de sincronização no servidor atualmente
 */
-void disconnectClientFromServer(int auxSocket, int syncSocket, char *userId, PFILA2 fila, int existedBefore);
+void disconnectClientFromServer(int auxSocket, int syncSocket, char *userId, PFILA2 clientList, PFILA2 auxSocketsList, PFILA2 syncSocketList, int existedBefore);
 void disconnectClient(int newsockfd);

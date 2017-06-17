@@ -41,8 +41,8 @@ int searchForUserId(PFILA2 fila, char *userId) {
   
   if (first == LISTSUCCESS) {
     void *clientFound;
-    Client_Info *clientWanted;
-    clientWanted = (Client_Info*) GetAtIteratorFila2(fila);
+    ClientInfo *clientWanted;
+    clientWanted = (ClientInfo*) GetAtIteratorFila2(fila);
     if (strcmp(clientWanted->userId, userId) == 0) {
       return SUCCESS;
     }
@@ -55,7 +55,7 @@ int searchForUserId(PFILA2 fila, char *userId) {
             return ERROR;
         }
         else {
-          clientWanted = (Client_Info*) clientFound;
+          clientWanted = (ClientInfo*) clientFound;
           if (strcmp(clientWanted->userId, userId) == 0) {
               return SUCCESS;
           }
@@ -75,8 +75,8 @@ int secondLogin(PFILA2 fila, char *userId) {
 
   if (first == LISTSUCCESS) {
     void *clientFound;
-    Client_Info *clientWanted;
-    clientWanted = (Client_Info*) GetAtIteratorFila2(fila);
+    ClientInfo *clientWanted;
+    clientWanted = (ClientInfo*) GetAtIteratorFila2(fila);
     if (strcmp(clientWanted->userId, userId) == 0) {
       //modificado para somar um no numDevices e setar logged_in
       if(clientWanted->numDevices >= MAXDEVICES){
@@ -96,7 +96,7 @@ int secondLogin(PFILA2 fila, char *userId) {
           return ERROR;
         }
         else {
-          clientWanted = (Client_Info*) clientFound;
+          clientWanted = (ClientInfo*) clientFound;
           if (strcmp(clientWanted->userId, userId) == 0) {
             //modificado para somar um no numDevices e setar logged_in
             if(clientWanted->numDevices >= MAXDEVICES){
@@ -123,8 +123,10 @@ int removeClient(PFILA2 fila, char *userId) {
 
   if (first == LISTSUCCESS) {
     void *clientFound;
-    Client_Info *clientWanted;
-    clientWanted = (Client_Info*) GetAtIteratorFila2(fila);
+
+    ClientInfo *clientWanted;
+    clientWanted = (ClientInfo*) GetAtIteratorFila2(fila);
+   
     if (strcmp(clientWanted->userId, userId) == 0) {
       //modificado para subtrair um no numDevices e setar logged_in
       clientWanted->numDevices = clientWanted->numDevices - 1;
@@ -145,7 +147,8 @@ int removeClient(PFILA2 fila, char *userId) {
           return ERROR;
         }
         else {
-          clientWanted = (Client_Info*) clientFound;
+          //ClientList
+          clientWanted = (ClientInfo*) clientFound;
           if (strcmp(clientWanted->userId, userId) == 0) {
             //modificado para subtrair um no numDevices e setar logged_in
             clientWanted->numDevices = clientWanted->numDevices - 1;
@@ -167,27 +170,65 @@ int removeClient(PFILA2 fila, char *userId) {
   }
 }
 
-void disconnectClientFromServer(int auxSocket, int syncSocket, char *userId, PFILA2 fila, int existedBefore) {
+int removeFromThreadList(PFILA2 fila, char *userId) {
+  int first;
+  first = FirstFila2(fila);
+
+  if (first == LISTSUCCESS) {
+    void *clientFound;
+
+    clientThread *clientWanted;
+    clientWanted = (clientThread*) GetAtIteratorFila2(fila);
+   
+    if (strcmp(clientWanted->userId, userId) == 0) {
+      DeleteAtIteratorFila2(fila);     
+      return SUCCESS;
+    }
+    else {
+      int iterator = 0;
+      while (iterator == 0) {
+        iterator = NextFila2(fila);
+        clientFound = GetAtIteratorFila2(fila);
+        if (clientFound == NULL) {
+          return ERROR;
+        }
+        else {
+          //ClientList
+          clientWanted = (clientThread*) clientFound;
+          if (strcmp(clientWanted->userId, userId) == 0) {
+            DeleteAtIteratorFila2(fila);
+            return SUCCESS;
+          }
+        }
+      }
+      return ERROR;
+    }
+  }
+  else {
+    return ERROR;
+  }
+}
+
+void disconnectClientFromServer(int auxSocket, int syncSocket, char *userId, PFILA2 clientList, PFILA2 auxSocketsList, PFILA2 syncSocketList, int existedBefore) {
   int n;
   char buffer[BUFFERSIZE];
   bzero(buffer, BUFFERSIZE);
   strcpy(buffer, DISCONNECTED);
-
+  
   //verify if numDevices == 1, if it is, set it to 0 and change logged_in to 0, if numDevices == 2, set it to 1 and maintain logged_in in 1
   if(existedBefore == 1){
-    removeClient(fila, userId);
-  }
+    //remove the client if necessary
+    //**********************tem que mudar pra deletar toda estrutura de arquivos quando deslogar totalmente***********************************
+    removeClient(clientList, userId);
+    //remove the auxiliary socket from auxSocketList
+    removeFromThreadList(auxSocketsList, userId);
+    //remove the sync socket from syncSocketList
+    removeFromThreadList(syncSocketList, userId);  
 
-  //close both sockets, sync and auxiliary
-    //search for both on loggedClients and auxClients and remove the ones from sync and auxiliary
-
-  //send message to the user telling him to finish his sockets
-  // n = write(newsockfd, buffer, strlen(buffer));
-  // if (n == ERROR) {
-  //   perror("ERROR writing to socket\n");
-  // } else {
-  //   printf("disconnected client\n");
-  // }
+    //close sockets
+    close(auxSocket);
+    close(syncSocket);
+  } 
 }
 
 char *cropUserId(char *auxSocketName) {
