@@ -14,12 +14,7 @@ pthread_mutex_t acceptingConnection;
 pthread_mutex_t userVerificationMutex;
 pthread_mutex_t disconnectMutex;
 
-void initializeList(PFILA2 list){
-  if(CreateFila2(list) != LISTSUCCESS) { // 0 = linked list initialized successfully
-    perror("ERROR initializing linked list");
-    exit(ERROR);
-  }
-}
+
 
 int verifyAuxSocket(char *buffer) {
   char buffercmp[BUFFERSIZE];

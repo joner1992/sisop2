@@ -12,6 +12,7 @@ struct sockaddr_in aux_serv_addr;
 struct hostent *aux_server;
 
 int disconnectSync = 0;
+FILA2 fileList;
 
 FILE *file;
 
@@ -194,6 +195,7 @@ void *auxSocketFunctions() {
 int main(int argc, char *argv[]) {
 
   if(validateClientArguments(argc, argv) != ERROR) {
+    initializeList(&fileList);
     
     setHost(argv[2]);
     setUserId(argv[6]);
