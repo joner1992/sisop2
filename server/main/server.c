@@ -196,7 +196,11 @@ void *auxClientThread(void* auxThread){
        receive_(newAuxThread->socketId, path);
       
     } else if(strcmp(command, "download") == 0) {
-      printf("chamou download com fileName = %s\n", fileNameOrPort1);
+      char path[255]= "./clientsDirectories/sync_dir_";
+      
+      sprintf(path,"%s%s/%s",path, newAuxThread->userId, fileNameOrPort1);
+      
+      send_(newAuxThread->socketId, path);
     } 
   }
 }

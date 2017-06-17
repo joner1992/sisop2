@@ -2,10 +2,10 @@ include Makefile.compile
 
 all: client server
 
-run-cliente:
+run-cliente: client
 	./cliente -ip localhost -p 12001 -U rodrigo
 
-run-servidor:
+run-servidor: server
 	./servidor -p 12001
 
 run:

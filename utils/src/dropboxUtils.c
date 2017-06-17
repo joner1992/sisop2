@@ -1,5 +1,6 @@
 #include "../include/dropboxUtils.h"
 #include <stdio.h>
+#include <libgen.h> //NEW LIB!!!
 
 void createDirectory(char *argv, int server) {
     
@@ -37,13 +38,13 @@ int send_(int socket, char* filename) {
    FILE *file = fopen(filename, "rb");
 
    if(file == NULL) {
-        printf("Error Opening File"); 
+        printf("Error - File not found or can't open"); 
         return -1;
    } 
-
-    if(DEBUG) printf("\nSending %s\n", filename);
     
-    write(socket, filename, 255);
+    if(DEBUG) printf("\nSending %s\n", basename(filename));
+    
+    write(socket, basename(filename), 255);
     
     if(DEBUG) printf("Getting file Size\n");   
 
@@ -127,12 +128,13 @@ int receive_(int socket, char path[255]) { // Start function
   
    if(DEBUG) printf("Reply sent\n\n");
   
-sprintf(fullPath, "%s%s",path,filename);
+    sprintf(fullPath, "%s%s",path,filename);
+  
   
   file = fopen(fullPath, "wb");
   
   if( file == NULL) {
-    printf("Error has occurred. Image file could not be opened\n");
+    printf("Error has occurred. File could not be opened\n");
     return -1; 
   }
   

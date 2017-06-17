@@ -151,7 +151,7 @@ void *syncSocket() {
   int i = 1;
   while(1){
     
-    bzero(buffer, BUFFERSIZE);
+    //bzero(buffer, BUFFERSIZE);
     //faz a thread esperar 10 segundos para fazer a proxima sincronização
     //printf("sleep number: %d\n", i);
     sleep(10);
@@ -161,38 +161,58 @@ void *syncSocket() {
 
 void *auxSocketFunctions() {
   char buffer[BUFFERSIZE];
-
+  
+  
+  
   while(1) {
     bzero(buffer, BUFFERSIZE);
+    char cmd[8] = "";
+    int i = 0;
+    
     printf(">> ");
     fgets(buffer, BUFFERSIZE, stdin);
     //coloca # entre os espaços e no final
     strcpy(buffer, adaptEntry(buffer));
     
-    // char command[8];
+    while (buffer[i]!='#' && i < 8) {
+        cmd[i] = buffer[i];
+        i++;
+    }    
     
-    // int i;
-    // printf("\nbuffer: %s", buffer);
-    // for(i = 1; (i < 8) || (buffer[i]!='#'); i++) command[i] = buffer[i];
+    printf("\n BUFFER: %s  / COMANDO %s", buffer, cmd);
+    //getchar();
     
-    // printf(">>COMMAND: %s <<", command);
-    //UPLOAD BEGIN
-    n = write(aux_sockfd, buffer, BUFFERSIZE);
-    if (n == ERROR) {
-      perror("ERROR writing to socket\n");
-      exit(ERROR);
-    }
-    
-    n = read(aux_sockfd, buffer, BUFFERSIZE);
+    if(strcmp(cmd, "upload") == 0) {
+      //UPLOAD BEGIN
+      //Enviando o comando para o servidor
+      n = write(aux_sockfd, buffer, BUFFERSIZE); 
       if (n == ERROR) {
-        perror("ERROR read from socket\n");
+        perror("ERROR writing to socket\n");
         exit(ERROR);
+      }
+      
+      //Recebendo o nome do arquivo
+      bzero(buffer, BUFFERSIZE);
+      n = read(aux_sockfd, buffer, BUFFERSIZE);
+        if (n == ERROR) {
+          perror("ERROR read from socket\n");
+          exit(ERROR);
+      }
+      //Enviando o arquivo
+      send_(aux_sockfd, buffer);
+      //UPLOAD END
+    } else if (strcmp(cmd, "download") == 0) {
+      //Enviando o comando para o servidor
+      n = write(aux_sockfd, buffer, BUFFERSIZE); 
+      if (n == ERROR) {
+        perror("ERROR writing to socket\n");
+        exit(ERROR);
+      }
+      //Pasta de destino
+      char dir[255]= "./files/out/";
+      receive_(aux_sockfd, dir);
     }
     
-    printf("Sending file: %s\n", buffer);
-    send_(aux_sockfd, buffer);
-    
-    //UPLOAD END
     
     
   }
