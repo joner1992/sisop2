@@ -191,6 +191,7 @@ void *auxSocketFunctions() {
     printf("\n BUFFER: %s  / COMANDO %s \n", buffer, cmd);
 
     if(strcmp(cmd, "upload") == 0) {
+      
       //UPLOAD BEGIN
       //Enviando o comando para o servidor
       n = write(aux_sockfd, buffer, BUFFERSIZE); 
@@ -209,6 +210,12 @@ void *auxSocketFunctions() {
       
       //Enviando o arquivo
       send_(aux_sockfd, buffer);
+
+      struct stat file_stat = getAttributes(buffer);
+      char lastModified[36];
+      strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
+      addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &fileList);
+
 
       //UPLOAD END
     } else if (strcmp(cmd, "download") == 0) {

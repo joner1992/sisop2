@@ -169,8 +169,21 @@ void *auxClientThread(void* auxThread){
       
       char path[255]= "./clientsDirectories/sync_dir_";
       sprintf(path,"%s%s/",path, newAuxThread->userId);
-      
-       receive_(newAuxThread->socketId, path);
+
+
+      receive_(newAuxThread->socketId, path);
+
+      if(searchForUserId(&clientList, newAuxThread->userId) == SUCCESS){
+        ClientInfo *user;
+        user = (ClientInfo *) GetAtIteratorFila2(&clientList);
+        
+        struct stat file_stat = getAttributes(path);
+        char lastModified[36];
+        strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
+        addFileToUser(basename(path), ".txt", lastModified, file_stat.st_size, &(user->filesList));
+      }
+
+
     } else if(strcmp(command, "download") == 0) {
       char path[255]= "./clientsDirectories/sync_dir_";
       

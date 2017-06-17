@@ -70,7 +70,7 @@ int searchForFile(char *fileName, PFILA2 fileList) {
 
 
 //FAZER!! tentar fazer de uma forma que sirva tanto pro client quanto para o server
-int addFileToUser(char *name, char *extension, char *lastModified, int size, FILA2 fileList){
+int addFileToUser(char *name, char *extension, char *lastModified, int size, PFILA2 fileList){
     //adicionar um novo filename ao user
     
     UserFiles *newFile = (UserFiles *) malloc(sizeof(UserFiles));
@@ -80,6 +80,7 @@ int addFileToUser(char *name, char *extension, char *lastModified, int size, FIL
     newFile->size = size;
 
     if(AppendFila2(&fileList, (void *) newFile) == LISTSUCCESS) {
+        printf("File added to list correctly! \n");
         return SUCCESS;
     }
     
@@ -87,7 +88,7 @@ int addFileToUser(char *name, char *extension, char *lastModified, int size, FIL
     return ERROR;
 }
 
-int removeFileFromUser(char *fileName, FILA2 fileList){
+int removeFileFromUser(char *fileName, PFILA2 fileList){
     //fazer remoção do filename do user
     if(searchForFile(fileName, &fileList) == SUCCESS) {
         if(DeleteAtIteratorFila2(&fileList) == LISTSUCCESS) {
@@ -269,4 +270,15 @@ int receive_(int socket, char path[255]) { // Start function
   fclose(file);
    if(DEBUG) printf("File successfully Received!\n");
   return 1;
+}
+
+ struct stat getAttributes(char* pathFile) {
+  struct stat attributes;
+
+  if (stat(pathFile,&attributes)) {
+        perror("ERROR Get attributes from file");
+        exit(-1);
+  }
+
+  return attributes;
 }
