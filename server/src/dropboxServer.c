@@ -132,7 +132,6 @@ int removeClient(PFILA2 fila, char *userId) {
       clientWanted->numDevices = clientWanted->numDevices - 1;
       if(clientWanted->numDevices == 0){
         clientWanted->logged_in = 0;
-        DeleteAtIteratorFila2(fila);
       } else {
         clientWanted->logged_in = 1;
       }
@@ -154,7 +153,6 @@ int removeClient(PFILA2 fila, char *userId) {
             clientWanted->numDevices = clientWanted->numDevices - 1;
             if(clientWanted->numDevices == 0){
               clientWanted->logged_in = 0;
-              DeleteAtIteratorFila2(fila);
             } else {
               clientWanted->logged_in = 1;
             }
