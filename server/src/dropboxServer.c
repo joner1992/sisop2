@@ -170,7 +170,7 @@ int removeClient(PFILA2 fila, char *userId) {
   }
 }
 
-int removeFromThreadList(PFILA2 fila, char *userId) {
+int removeFromThreadList(PFILA2 fila, char *userId, int socket) {
   int first;
   first = FirstFila2(fila);
 
@@ -180,7 +180,7 @@ int removeFromThreadList(PFILA2 fila, char *userId) {
     clientThread *clientWanted;
     clientWanted = (clientThread*) GetAtIteratorFila2(fila);
    
-    if (strcmp(clientWanted->userId, userId) == 0) {
+    if ((strcmp(clientWanted->userId, userId) == 0) && (strcmp(clientWanted->socketId, socket) == 0)) {
       DeleteAtIteratorFila2(fila);     
       return SUCCESS;
     }
@@ -195,7 +195,7 @@ int removeFromThreadList(PFILA2 fila, char *userId) {
         else {
           //ClientList
           clientWanted = (clientThread*) clientFound;
-          if (strcmp(clientWanted->userId, userId) == 0) {
+          if ((strcmp(clientWanted->userId, userId) == 0) && (strcmp(clientWanted->socketId, socket) == 0)) {
             DeleteAtIteratorFila2(fila);
             return SUCCESS;
           }
@@ -209,26 +209,18 @@ int removeFromThreadList(PFILA2 fila, char *userId) {
   }
 }
 
-void disconnectClientFromServer(int auxSocket, int syncSocket, char *userId, PFILA2 clientList, PFILA2 auxSocketsList, PFILA2 syncSocketList, int existedBefore) {
-  int n;
-  char buffer[BUFFERSIZE];
-  bzero(buffer, BUFFERSIZE);
-  strcpy(buffer, DISCONNECTED);
-  
-  //verify if numDevices == 1, if it is, set it to 0 and change logged_in to 0, if numDevices == 2, set it to 1 and maintain logged_in in 1
-  if(existedBefore == 1){
-    //remove the client if necessary
-    //**********************tem que mudar pra deletar toda estrutura de arquivos quando deslogar totalmente***********************************
-    removeClient(clientList, userId);
-    //remove the auxiliary socket from auxSocketList
-    removeFromThreadList(auxSocketsList, userId);
-    //remove the sync socket from syncSocketList
-    removeFromThreadList(syncSocketList, userId);  
-
-    //close sockets
-    close(auxSocket);
-    close(syncSocket);
-  } 
+void disconnectClientFromServer(int socket, char *userId, PFILA2 auxSocketsList, PFILA2 syncSocketList, int isAux) {  
+  if(isAux == 1){
+    printf("removendo auxSocketList\n");
+    if(removeFromThreadList(auxSocketsList, userId, socket) == SUCCESS){
+      printf("removeu com sucesso auxSocketList\n");
+    }
+  } else {
+    printf("removendo syncSocketList\n");
+    if(removeFromThreadList(syncSocketList, userId, socket) == SUCCESS){
+      printf("removeu com sucesso syncSocketList\n");
+    }
+  }
 }
 
 char *cropUserId(char *auxSocketName) {

@@ -91,12 +91,28 @@ void *syncClientThread(void* syncThread){
 
   //colocar o código do sync aqui
   while(1){
-    sleep(10);
+    sleep(3);
+    // while(1){
+    //   bzero(buffer, BUFFERSIZE);
+    //   n = read(newSyncThread->socketId, buffer, BUFFERSIZE);
+    //   if (n == ERROR) {
+    //     pthread_exit(NULL);
+    //   } else if(strcmp(buffer, "BYE")) {
+    //     pthread_exit(NULL); 
+    //   } else {
+    //     break;
+    //   }
+    // }
     bzero(buffer, BUFFERSIZE);
+    strcpy(buffer, "TEST");
     n = write(newSyncThread->socketId, buffer, BUFFERSIZE);
     if (n == ERROR) {
+      pthread_mutex_lock(&disconnectMutex);
+        printf("terminando thread sync\n");
+        //disconnectClientFromServer(newSyncThread->socketId, newSyncThread->userId, &auxSocketsList, &syncSocketsList, 0);
+      pthread_mutex_unlock(&disconnectMutex);
       pthread_exit(NULL);
-    } 
+    }
   }
 }
 
@@ -106,16 +122,16 @@ void *auxClientThread(void* auxThread){
   clientThread *newAuxThread = auxThread;
   char *forIterator;
   char *subString;
-  char fileNameOrPort1[BUFFERSIZE];
-  char port2[BUFFERSIZE];
+  char fileName[BUFFERSIZE];
+  char content[BUFFERSIZE];
   char command[BUFFERSIZE];
   int numCommands;
 
   while(1){ 
     bzero(buffer, BUFFERSIZE);
     bzero(command, BUFFERSIZE);
-    bzero(fileNameOrPort1, BUFFERSIZE);
-    bzero(port2, BUFFERSIZE);
+    bzero(fileName, BUFFERSIZE);
+    bzero(content, BUFFERSIZE);
     numCommands = 0;
 
     n = read(newAuxThread->socketId, buffer, BUFFERSIZE);
@@ -128,10 +144,10 @@ void *auxClientThread(void* auxThread){
 			  strcpy(command, forIterator);
 		  }
 		  else if (numCommands == 1){
-			  strcpy(fileNameOrPort1, forIterator);
+			  strcpy(fileName, forIterator);
 		  }
 		  else{ //se usarmos
-			  strcpy(port2, forIterator);
+			  strcpy(content, forIterator);
 		  }
 		  numCommands++;
     }
@@ -141,18 +157,16 @@ void *auxClientThread(void* auxThread){
     } else if(strcmp(command, "exit") == 0) {
       //cliente pediu para se desconectar, da close nos 2 sockets e mata as 2 threads
       pthread_mutex_lock(&disconnectMutex);
-        //flag DISCONNECTEDEXITEDBEFORE, remove from client lists the client or remove one of the devices
-        int disconnectSyncSocket = atoi(fileNameOrPort1);
-        int disconnectAuxSocket = atoi(port2);
-        printf("disconnecting ports: aux %d and sync %d\n", disconnectAuxSocket, disconnectSyncSocket);
-        disconnectClientFromServer(disconnectAuxSocket, disconnectSyncSocket, newAuxThread->userId, &clientList, &auxSocketsList, &syncSocketsList, DISCONNECTEXISTEDBEFORE);
+        removeClient(&clientList, newAuxThread->userId);
+        //disconnectClientFromServer(newAuxThread->socketId, newAuxThread->userId, &auxSocketsList, &syncSocketsList, 1);
+        close(newAuxThread->socketId);
       pthread_mutex_unlock(&disconnectMutex);
       pthread_exit(NULL);
 
     } else if(strcmp(command, "upload") == 0) {
-      printf("chamou upload com fileName = %s\n", fileNameOrPort1);
+      printf("chamou upload com fileName = %s\n", fileName);
     } else if(strcmp(command, "download") == 0) {
-      printf("chamou download com fileName = %s\n", fileNameOrPort1);
+      printf("chamou download com fileName = %s\n", fileName);
     } 
   }
 }
@@ -170,9 +184,6 @@ void *acceptClient() {
       perror("ERROR on accept client");
       exit(ERROR);
     } 
-
-    printf("sockfd: %d\n", sockfd);
-    printf("newsockfd: %d\n", newsockfd);
     
     pthread_mutex_lock(&userVerificationMutex);
 
@@ -216,7 +227,7 @@ void *acceptClient() {
         if (n == ERROR) {
           perror("ERROR writing to socket\n");
           exit(ERROR);
-        }        
+        }
       } else {
         bzero(buffer, BUFFERSIZE);
         strcpy(buffer, "NOTOK");
@@ -251,7 +262,7 @@ int main(int argc, char *argv[])
     bindServerSocket();
     // LISTEN
 
-    listen(sockfd, 50);
+    listen(sockfd, 20);
     printf("Server is listening at: %s:%d\n", inet_ntoa(serv_addr.sin_addr), (int) ntohs(serv_addr.sin_port));
 
     //ACCEPT CLIENT

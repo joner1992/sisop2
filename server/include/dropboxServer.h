@@ -50,14 +50,9 @@ int secondLogin(PFILA2 fila, char *userId);
 char *cropUserId(char *auxSocketName);
 /*
     desconecta os sockets do client
-
-    se existedBefore
-    0 = não existia o usuário no sistema, portanto não precisa retirar da lista
-    1 = existia antes, portanto precisamos retirar ele da lista
-
-    clientList = lista de clientes do servidor atualmente
-    auxSocketsList = lista de sockets auxiliares no servidor atualmente
-    syncSocketList = lista de sockets de sincronização no servidor atualmente
+    se isAux
+    0 = é sync
+    1 = é aux
 */
-void disconnectClientFromServer(int auxSocket, int syncSocket, char *userId, PFILA2 clientList, PFILA2 auxSocketsList, PFILA2 syncSocketList, int existedBefore);
+void disconnectClientFromServer(int socket, char *userId, PFILA2 auxSocketsList, PFILA2 syncSocketList, int isAux);
 void disconnectClient(int newsockfd);

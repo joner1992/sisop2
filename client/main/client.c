@@ -2,7 +2,7 @@
 #include "../include/dropboxClient.h"
 #include <stdio.h>
 
-int sockfd, n, server_port, clientSockfd, clientAuxSockfd;
+int sockfd, n, server_port;
 char userId[MAXNAME];
 struct sockaddr_in serv_addr;
 struct hostent *server;
@@ -11,7 +11,7 @@ int aux_sockfd, m;
 struct sockaddr_in aux_serv_addr;
 struct hostent *aux_server;
 
-
+int disconnectSync = 0;
 
 FILE *file;
 
@@ -75,7 +75,7 @@ int connectSocket() {
     serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
     bzero(&(serv_addr.sin_zero), 8); 
 
-    if (clientSockfd = connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
     {
       perror("ERROR connecting to server\n");
       exit(ERROR);
@@ -115,7 +115,7 @@ void connectAuxSocket() {
     aux_serv_addr.sin_addr = *((struct in_addr *)aux_server->h_addr);
     bzero(&(serv_addr.sin_zero), 8); 
 
-    if (clientAuxSockfd = connect(aux_sockfd,(struct sockaddr *) &aux_serv_addr,sizeof(aux_serv_addr)) < 0) 
+    if (connect(aux_sockfd,(struct sockaddr *) &aux_serv_addr,sizeof(aux_serv_addr)) < 0) 
     {
       perror("ERROR connecting to server\n");
       exit(ERROR);
@@ -150,11 +150,23 @@ void *syncSocket() {
   //colocar o código do sync aqui
   int i = 1;
   while(1){
-    
+    if(disconnectSync == 1){
+      //envia msg para servidor dizendo para fechar a porra
+      // strcpy(buffer, "BYE");
+      
+      // n = write(sockfd, buffer, BUFFERSIZE);
+      // if (n == ERROR) {
+      //   perror("ERROR writing to socket\n");
+      //   exit(ERROR);
+      // }
+      close(sockfd);
+
+      pthread_exit(NULL);
+    }
     bzero(buffer, BUFFERSIZE);
     //faz a thread esperar 10 segundos para fazer a proxima sincronização
     printf("sleep number: %d\n", i);
-    sleep(10);
+    sleep(3);
     i++;
   }
 }
@@ -162,17 +174,20 @@ void *syncSocket() {
 void *auxSocketFunctions() {
   char buffer[BUFFERSIZE];
   char bufferExit[BUFFERSIZE];
-  char socket[20];
-  char auxSocket[20];
+
   while(1) {
     bzero(buffer, BUFFERSIZE);
-    bzero(bufferExit, BUFFERSIZE);
-    bzero(socket, 20);
-    bzero(auxSocket, 20);
 
     printf(">> ");
     fgets(buffer, BUFFERSIZE, stdin);
     strcpy(buffer, adaptEntry(buffer));
+
+    if(strcmp(buffer, "exit#") == 0){
+      disconnectSync = 1;
+      close(aux_sockfd);
+      pthread_exit(NULL);
+    }
+    
     n = write(aux_sockfd, buffer, BUFFERSIZE);
     if (n == ERROR) {
       perror("ERROR writing to socket\n");
@@ -206,16 +221,18 @@ int main(int argc, char *argv[]) {
       pthread_create(&syncSocketThread,&attributesSyncSocketThread,syncSocket,NULL);    
 
       connectAuxSocket();
+      
       //AUX socket para comandos, upload e download
       pthread_t auxSocketThread;
       pthread_attr_t attributesAuxSocketThread;
       pthread_attr_init(&attributesAuxSocketThread);
-      pthread_create(&auxSocketThread,&attributesAuxSocketThread,auxSocketFunctions,NULL);    
-      
+      pthread_create(&auxSocketThread,&attributesAuxSocketThread,auxSocketFunctions,NULL);
+
       pthread_join(syncSocketThread, NULL);
       pthread_join(auxSocketThread, NULL);
+
     } else {
-      printf("\nMax connections reached\n");
+      printf("Max connections reached!\n");
     }
 
 
