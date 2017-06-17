@@ -27,3 +27,5 @@
 #define DISCONNECT 0
 
 void createDirectory(char *argv, int server);
+int send_(int socket, char *filename);
+int receive_(int socket, char path[255]);

@@ -153,7 +153,7 @@ void *syncSocket() {
     
     bzero(buffer, BUFFERSIZE);
     //faz a thread esperar 10 segundos para fazer a proxima sincronização
-    printf("sleep number: %d\n", i);
+    //printf("sleep number: %d\n", i);
     sleep(10);
     i++;
   }
@@ -168,12 +168,33 @@ void *auxSocketFunctions() {
     fgets(buffer, BUFFERSIZE, stdin);
     //coloca # entre os espaços e no final
     strcpy(buffer, adaptEntry(buffer));
-
+    
+    // char command[8];
+    
+    // int i;
+    // printf("\nbuffer: %s", buffer);
+    // for(i = 1; (i < 8) || (buffer[i]!='#'); i++) command[i] = buffer[i];
+    
+    // printf(">>COMMAND: %s <<", command);
+    //UPLOAD BEGIN
     n = write(aux_sockfd, buffer, BUFFERSIZE);
     if (n == ERROR) {
       perror("ERROR writing to socket\n");
       exit(ERROR);
     }
+    
+    n = read(aux_sockfd, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR read from socket\n");
+        exit(ERROR);
+    }
+    
+    printf("Sending file: %s\n", buffer);
+    send_(aux_sockfd, buffer);
+    
+    //UPLOAD END
+    
+    
   }
 }
 

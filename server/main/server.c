@@ -126,9 +126,9 @@ void *syncClientThread(void* syncThread){
     //ao tentar ler do socket, se retornar -1 significa que o socket foi fechado
     bzero(buffer, BUFFERSIZE);
     //faz a thread esperar 10 segundos para fazer a proxima sincronização
-    printf("sleep number: %d\n", i);
-    sleep(10);
-    i++;
+    //printf("sleep number: %d\n", i);
+    //sleep(10);
+    //i++;
   }
 }
 
@@ -181,7 +181,20 @@ void *auxClientThread(void* auxThread){
       pthread_exit(NULL);
 
     } else if(strcmp(command, "upload") == 0) {
-      printf("chamou upload com fileName = %s\n", fileNameOrPort1);
+      bzero(buffer, BUFFERSIZE);
+      strcpy(buffer, fileNameOrPort1);
+      
+      n = write(newAuxThread->socketId, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR writing to socket\n");
+        exit(ERROR);
+      }
+      
+      char path[255]= "./clientsDirectories/sync_dir_";
+      sprintf(path,"%s%s/",path, newAuxThread->userId);
+      
+       receive_(newAuxThread->socketId, path);
+      
     } else if(strcmp(command, "download") == 0) {
       printf("chamou download com fileName = %s\n", fileNameOrPort1);
     } 
