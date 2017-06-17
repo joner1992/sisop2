@@ -24,3 +24,19 @@ void createDirectory(char *argv, int server) {
         
     }
 }
+
+//FAZER!! tentar fazer de uma forma que sirva tanto pro client quanto para o server
+int adicionaFilenameAoUser(char *userId){
+    //adicionar um novo filename ao user
+    return 0;
+}
+
+int removeFilenameAoUser(char *userId){
+    //fazer remoção do filename do user
+    return 0;
+}
+
+int atualizaFilenameAoUser(char *userId){
+    //atualiza Size ao fazer download de um novo
+    return 0;
+}
