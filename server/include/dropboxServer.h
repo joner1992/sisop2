@@ -24,7 +24,6 @@ typedef struct auxclient {
  char userId[MAXNAME]; //metadados de cada arquivo que o cliente possui no servidor
 } clientThread;
 
-
 /*  Sincroniza o servidor com o diretorio 
     “sync_dir_<nomeusuario>” com o cliente*/
 void sync_server();
@@ -49,4 +48,12 @@ int searchForUserId(PFILA2 fila, char *userId);
 int secondLogin(PFILA2 fila, char *userId);
 //recorta UserId do login auxiliar
 char *cropUserId(char *auxSocketName);
+/*
+    desconecta os sockets do client
+
+    se existedBefore
+    0 = não existia o usuário no sistema, portanto não precisa retirar da lista
+    1 = existia antes, portanto precisamos retirar ele da lista
+*/
+void disconnectClientFromServer(int auxSocket, int syncSocket, char *userId, PFILA2 fila, int existedBefore);
 void disconnectClient(int newsockfd);

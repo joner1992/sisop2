@@ -87,7 +87,6 @@ int connectSocket() {
       perror("ERROR writing to socket\n");
       exit(ERROR);
     }
-
     while(1){
       //verificar aqui porque não ta respondendo
       bzero(buffer, BUFFERSIZE);
@@ -97,14 +96,12 @@ int connectSocket() {
         exit(ERROR);
       }
 
-      printf("buffer: %s\n", buffer);
-      printf("sockfd: %d\n", sockfd);
-
       if(strcmp(buffer, "OK") == 0){
-        printf("OK");
+        //cria thread sync
         return SUCCESS;
       } else if(strcmp(buffer, "NOTOK") == 0) {
-        printf("NOTOK");
+        printf("Maximum devices connections reached :(\n");
+        exit(ERROR);
         return ERROR;
       } 
     }
@@ -133,7 +130,6 @@ void connectAuxSocket() {
       perror("ERROR writing to socket\n");
       exit(ERROR);
     }
-
 }
 
 char *adaptEntry(char *cmd) {
@@ -148,9 +144,24 @@ char *adaptEntry(char *cmd) {
   return aux;
 }
 
+void *syncSocket() {
+  char buffer[BUFFERSIZE];
+
+  //colocar o código do sync aqui
+  int i = 1;
+  while(1){
+    
+    bzero(buffer, BUFFERSIZE);
+    //faz a thread esperar 10 segundos para fazer a proxima sincronização
+    printf("sleep number: %d\n", i);
+    sleep(10);
+    i++;
+  }
+}
+
 void *auxSocketFunctions() {
   char buffer[BUFFERSIZE];
-  char auxBuffer[BUFFERSIZE];
+
   while(1) {
     bzero(buffer, BUFFERSIZE);
     printf(">> ");
@@ -174,8 +185,6 @@ int main(int argc, char *argv[]) {
     setUserId(argv[6]);
     createSocket();
     
-    
-    
     setAuxHost(argv[2]);
     setAuxHost(argv[2]);
     createAuxSocket();
@@ -186,12 +195,20 @@ int main(int argc, char *argv[]) {
     }
     
     if(connectSocket() == SUCCESS) {
+      //cria socket sync
+      pthread_t syncSocketThread;
+      pthread_attr_t attributesSyncSocketThread;
+      pthread_attr_init(&attributesSyncSocketThread);
+      pthread_create(&syncSocketThread,&attributesSyncSocketThread,syncSocket,NULL);    
+
       connectAuxSocket();
       //AUX socket para comandos, upload e download
       pthread_t auxSocketThread;
       pthread_attr_t attributesAuxSocketThread;
       pthread_attr_init(&attributesAuxSocketThread);
       pthread_create(&auxSocketThread,&attributesAuxSocketThread,auxSocketFunctions,NULL);    
+      
+      pthread_join(syncSocketThread, NULL);
       pthread_join(auxSocketThread, NULL);
     } else {
       printf("\nMax connections reached\n");

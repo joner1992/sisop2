@@ -9,6 +9,7 @@ int server_port;
 // Queue for clients structs
 FILA2 clientList;
 FILA2 auxSocketsList;
+FILA2 syncSocketsList;
 pthread_mutex_t acceptingConnection;
 pthread_mutex_t userVerificationMutex;
 pthread_mutex_t disconnectMutex;
@@ -31,13 +32,9 @@ int verifyAuxSocket(char *buffer) {
 
 int verifyUserAuthentication(char *buffer, int newsockfd) {
   if(searchForUserId(&clientList, buffer) == SUCCESS) {
-    //modifica logged_in e numDevices e verifica se pode logar
     if(secondLogin(&clientList, buffer) == ERROR){
-      //se retornou erro é porque já tem numDevices máximos
-      printf("retornou maxdevices error em secondLogin\n");
       return ERROR;
-    } else {
-      //cria thread
+    } else {      
       return SUCCESS;
     }
   }
@@ -118,22 +115,39 @@ void *writeUser(void* arg){
   }
 }
 
+void *syncClientThread(void* syncThread){
+  int n;
+  char buffer[BUFFERSIZE];
+  clientThread *newSyncThread = syncThread;
+
+  //colocar o código do sync aqui
+  int i = 1;
+  while(1){
+    //ao tentar ler do socket, se retornar -1 significa que o socket foi fechado
+    bzero(buffer, BUFFERSIZE);
+    //faz a thread esperar 10 segundos para fazer a proxima sincronização
+    printf("sleep number: %d\n", i);
+    sleep(10);
+    i++;
+  }
+}
+
 void *auxClientThread(void* auxThread){
   int n;
   char buffer[BUFFERSIZE];
   clientThread *newAuxThread = auxThread;
   char *forIterator;
   char *subString;
-  char fileName[BUFFERSIZE];
-  char fileContent[BUFFERSIZE];
+  char fileNameOrPort1[BUFFERSIZE];
+  char port2[BUFFERSIZE];
   char command[BUFFERSIZE];
   int numCommands;
 
   while(1){ 
     bzero(buffer, BUFFERSIZE);
     bzero(command, BUFFERSIZE);
-    bzero(fileName, BUFFERSIZE);
-    bzero(fileContent, BUFFERSIZE);
+    bzero(fileNameOrPort1, BUFFERSIZE);
+    bzero(port2, BUFFERSIZE);
     numCommands = 0;
 
     n = read(newAuxThread->socketId, buffer, BUFFERSIZE);
@@ -146,10 +160,10 @@ void *auxClientThread(void* auxThread){
 			  strcpy(command, forIterator);
 		  }
 		  else if (numCommands == 1){
-			  strcpy(fileName, forIterator);
+			  strcpy(fileNameOrPort1, forIterator);
 		  }
 		  else{ //se usarmos
-			  strcpy(fileContent, forIterator);
+			  strcpy(port2, forIterator);
 		  }
 		  numCommands++;
     }
@@ -157,15 +171,19 @@ void *auxClientThread(void* auxThread){
     if(strcmp(command, "list") == 0) {
       printf("chamou list\n");
     } else if(strcmp(command, "exit") == 0) {
+      //cliente pediu para se desconectar, da close nos 2 sockets e mata as 2 threads
       pthread_mutex_lock(&disconnectMutex);
-        disconnectClientFromServer(newAuxThread->socketId, newAuxThread->userId, &clientList, DISCONNECTEXISTEDBEFORE);
+        //flag DISCONNECTEDEXITEDBEFORE, remove from client lists the client or remove one of the devices
+        int disconnectAuxSocket = atoi(fileNameOrPort1);
+        int disconnectSyncSocket = atoi(port2);
+        disconnectClientFromServer(disconnectAuxSocket, disconnectSyncSocket, newAuxThread->userId, &clientList, DISCONNECTEXISTEDBEFORE);
       pthread_mutex_unlock(&disconnectMutex);
-      //falta matar a thread do sync qndo tivermos tbm da lista de auxSockets
       pthread_exit(NULL);
+
     } else if(strcmp(command, "upload") == 0) {
-      printf("chamou upload com fileName = %s\n", fileName);
+      printf("chamou upload com fileName = %s\n", fileNameOrPort1);
     } else if(strcmp(command, "download") == 0) {
-      printf("chamou download com fileName = %s\n", fileName);
+      printf("chamou download com fileName = %s\n", fileNameOrPort1);
     } 
   }
 }
@@ -191,10 +209,9 @@ void *acceptClient() {
     n = read(newsockfd, buffer, BUFFERSIZE);
     if (n == ERROR) {
       close(newsockfd);
-    }    
-    
+    }
+  
     if(verifyAuxSocket(buffer) == SUCCESS){
-
       clientThread *auxSocket = (clientThread*) malloc(sizeof(clientThread));
       strcpy(auxSocket->userId, cropUserId(buffer));
       auxSocket->socketId = newsockfd;
@@ -210,14 +227,25 @@ void *acceptClient() {
 
     }
     else if(verifyUserAuthentication(buffer, newsockfd) == SUCCESS){
+        //aqui ele já adicionou 1 no numero de devices e já está criando a thread para continuar utilizando o no sync.
+        clientThread *syncSocket = (clientThread*) malloc(sizeof(clientThread));
+        strcpy(syncSocket->userId, buffer);
+        syncSocket->socketId = newsockfd;
+        AppendFila2(&syncSocketsList, (void *) syncSocket);    
+
+        //cria thread principal para sync
+        pthread_t syncThread;
+        pthread_attr_t attributesSyncThread;
+        pthread_attr_init(&attributesSyncThread);
+        pthread_create(&syncThread,&attributesSyncThread, syncClientThread, (void *) syncSocket);
+
         bzero(buffer, BUFFERSIZE);
         strcpy(buffer, "OK");
         n = write(newsockfd, buffer, BUFFERSIZE);
         if (n == ERROR) {
           perror("ERROR writing to socket\n");
           exit(ERROR);
-        }
-        printf("enviou ok\n");
+        }        
       } else {
         bzero(buffer, BUFFERSIZE);
         strcpy(buffer, "NOTOK");
@@ -226,14 +254,10 @@ void *acceptClient() {
           perror("ERROR writing to socket\n");
           exit(ERROR);
         }
-        printf("enviou notok\n");
       }
       pthread_mutex_unlock(&userVerificationMutex);
-            
-      // sync
-    
-    
-    // close(newsockfd);
+      
+      // sync 
   }
 }
 
@@ -242,8 +266,13 @@ int main(int argc, char *argv[])
 { 
   if(validateServerArguments(argc, argv) != ERROR) 
   {
+    //lista de dados de clientes e files
     initializeList(&clientList);
+    //lista de sockets auxiliares logados
     initializeList(&auxSocketsList);
+    //lista de sockets principais logados(sync)
+    initializeList(&syncSocketsList);
+
     if((server_port = getPort(argv[2])) == ERROR) {
       printf ("ERROR on attributing the port");
       return ERROR;
@@ -263,9 +292,7 @@ int main(int argc, char *argv[])
     pthread_create(&acceptThread,&attributesAcceptThread,acceptClient,NULL);
 
     pthread_join(acceptThread, NULL);
-    
-    
-    
+
     //close(sockfd);
   }
   else 

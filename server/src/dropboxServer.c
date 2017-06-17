@@ -167,7 +167,7 @@ int removeClient(PFILA2 fila, char *userId) {
   }
 }
 
-void disconnectClientFromServer(int newsockfd, char *userId, PFILA2 fila, int existedBefore) {
+void disconnectClientFromServer(int auxSocket, int syncSocket, char *userId, PFILA2 fila, int existedBefore) {
   int n;
   char buffer[BUFFERSIZE];
   bzero(buffer, BUFFERSIZE);
@@ -177,14 +177,17 @@ void disconnectClientFromServer(int newsockfd, char *userId, PFILA2 fila, int ex
   if(existedBefore == 1){
     removeClient(fila, userId);
   }
-  
+
+  //close both sockets, sync and auxiliary
+    //search for both on loggedClients and auxClients and remove the ones from sync and auxiliary
+
   //send message to the user telling him to finish his sockets
-  n = write(newsockfd, buffer, strlen(buffer));
-  if (n == ERROR) {
-    perror("ERROR writing to socket\n");
-  } else {
-    printf("disconnected client\n");
-  }
+  // n = write(newsockfd, buffer, strlen(buffer));
+  // if (n == ERROR) {
+  //   perror("ERROR writing to socket\n");
+  // } else {
+  //   printf("disconnected client\n");
+  // }
 }
 
 char *cropUserId(char *auxSocketName) {
