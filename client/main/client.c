@@ -148,7 +148,6 @@ void *syncSocket() {
   char buffer[BUFFERSIZE];
 
   //colocar o código do sync aqui
-  int i = 1;
   while(1){
     if(disconnectSync == 1){
       //envia msg para servidor dizendo para fechar a porra
@@ -164,10 +163,6 @@ void *syncSocket() {
       pthread_exit(NULL);
     }
     bzero(buffer, BUFFERSIZE);
-    //faz a thread esperar 10 segundos para fazer a proxima sincronização
-    printf("sleep number: %d\n", i);
-    sleep(3);
-    i++;
   }
 }
 
@@ -182,16 +177,16 @@ void *auxSocketFunctions() {
     fgets(buffer, BUFFERSIZE, stdin);
     strcpy(buffer, adaptEntry(buffer));
 
-    if(strcmp(buffer, "exit#") == 0){
-      disconnectSync = 1;
-      close(aux_sockfd);
-      pthread_exit(NULL);
-    }
-    
     n = write(aux_sockfd, buffer, BUFFERSIZE);
     if (n == ERROR) {
       perror("ERROR writing to socket\n");
       exit(ERROR);
+    }
+
+    if(strcmp(buffer, "exit#") == 0){
+      disconnectSync = 1;
+      close(aux_sockfd);
+      pthread_exit(NULL);
     }
   }
 }

@@ -108,8 +108,7 @@ void *syncClientThread(void* syncThread){
     n = write(newSyncThread->socketId, buffer, BUFFERSIZE);
     if (n == ERROR) {
       pthread_mutex_lock(&disconnectMutex);
-        printf("terminando thread sync\n");
-        //disconnectClientFromServer(newSyncThread->socketId, newSyncThread->userId, &auxSocketsList, &syncSocketsList, 0);
+        disconnectClientFromServer(newSyncThread->socketId, newSyncThread->userId, &auxSocketsList, &syncSocketsList, 0);
       pthread_mutex_unlock(&disconnectMutex);
       pthread_exit(NULL);
     }
@@ -157,8 +156,8 @@ void *auxClientThread(void* auxThread){
     } else if(strcmp(command, "exit") == 0) {
       //cliente pediu para se desconectar, da close nos 2 sockets e mata as 2 threads
       pthread_mutex_lock(&disconnectMutex);
-        removeClient(&clientList, newAuxThread->userId);
-        //disconnectClientFromServer(newAuxThread->socketId, newAuxThread->userId, &auxSocketsList, &syncSocketsList, 1);
+        removeClient(&clientList, newAuxThread->userId) == SUCCESS;
+        disconnectClientFromServer(newAuxThread->socketId, newAuxThread->userId, &auxSocketsList, &syncSocketsList, 1);
         close(newAuxThread->socketId);
       pthread_mutex_unlock(&disconnectMutex);
       pthread_exit(NULL);
@@ -272,7 +271,7 @@ int main(int argc, char *argv[])
     pthread_create(&acceptThread,&attributesAcceptThread,acceptClient,NULL);
 
     pthread_join(acceptThread, NULL);
-
+    printf("*************\nFECHOU O PROGRAMA\n*************");
     //close(sockfd);
   }
   else 

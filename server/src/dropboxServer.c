@@ -180,7 +180,7 @@ int removeFromThreadList(PFILA2 fila, char *userId, int socket) {
     clientThread *clientWanted;
     clientWanted = (clientThread*) GetAtIteratorFila2(fila);
    
-    if ((strcmp(clientWanted->userId, userId) == 0) && (strcmp(clientWanted->socketId, socket) == 0)) {
+    if ((strcmp(clientWanted->userId, userId) == 0) && (clientWanted->socketId == socket)) {
       DeleteAtIteratorFila2(fila);     
       return SUCCESS;
     }
@@ -195,7 +195,7 @@ int removeFromThreadList(PFILA2 fila, char *userId, int socket) {
         else {
           //ClientList
           clientWanted = (clientThread*) clientFound;
-          if ((strcmp(clientWanted->userId, userId) == 0) && (strcmp(clientWanted->socketId, socket) == 0)) {
+          if ((strcmp(clientWanted->userId, userId) == 0) && (clientWanted->socketId == socket)) {
             DeleteAtIteratorFila2(fila);
             return SUCCESS;
           }
@@ -210,16 +210,10 @@ int removeFromThreadList(PFILA2 fila, char *userId, int socket) {
 }
 
 void disconnectClientFromServer(int socket, char *userId, PFILA2 auxSocketsList, PFILA2 syncSocketList, int isAux) {  
-  if(isAux == 1){
-    printf("removendo auxSocketList\n");
-    if(removeFromThreadList(auxSocketsList, userId, socket) == SUCCESS){
-      printf("removeu com sucesso auxSocketList\n");
-    }
+  if(isAux == 1){   
+    removeFromThreadList(auxSocketsList, userId, socket) == SUCCESS;
   } else {
-    printf("removendo syncSocketList\n");
-    if(removeFromThreadList(syncSocketList, userId, socket) == SUCCESS){
-      printf("removeu com sucesso syncSocketList\n");
-    }
+    removeFromThreadList(syncSocketList, userId, socket) == SUCCESS;
   }
 }
 
