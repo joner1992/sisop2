@@ -158,9 +158,25 @@ void *auxClientThread(void* auxThread){
       pthread_exit(NULL);
 
     } else if(strcmp(command, "upload") == 0) {
-      printf("chamou upload com fileName = %s\n", fileName);
+      bzero(buffer, BUFFERSIZE);
+      strcpy(buffer, fileName);
+      
+      n = write(newAuxThread->socketId, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR writing to socket\n");
+        exit(ERROR);
+      }
+      
+      char path[255]= "./clientsDirectories/sync_dir_";
+      sprintf(path,"%s%s/",path, newAuxThread->userId);
+      
+       receive_(newAuxThread->socketId, path);
     } else if(strcmp(command, "download") == 0) {
-      printf("chamou download com fileName = %s\n", fileName);
+      char path[255]= "./clientsDirectories/sync_dir_";
+      
+      sprintf(path,"%s%s/%s",path, newAuxThread->userId, fileName);
+      
+      send_(newAuxThread->socketId, path);
     } 
   }
 }

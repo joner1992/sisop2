@@ -169,22 +169,67 @@ void *syncSocket() {
 
 void *auxSocketFunctions() {
   char buffer[BUFFERSIZE];
+  char cmd[8] = "";
+  char dir[255];
   char bufferExit[BUFFERSIZE];
 
   while(1) {
     bzero(buffer, BUFFERSIZE);
+    bzero(dir, 255);
+    bzero(cmd, 8);
+    int i = 0;
 
     printf(">> ");
     fgets(buffer, BUFFERSIZE, stdin);
     strcpy(buffer, adaptEntry(buffer));
 
-    n = write(aux_sockfd, buffer, BUFFERSIZE);
-    if (n == ERROR) {
-      perror("ERROR writing to socket\n");
-      exit(ERROR);
-    }
+    while (buffer[i]!='#' && i < 8) {
+        cmd[i] = buffer[i];
+        i++;
+    }    
 
-    if(strcmp(buffer, "exit#") == 0){
+    printf("\n BUFFER: %s  / COMANDO %s \n", buffer, cmd);
+
+    if(strcmp(cmd, "upload") == 0) {
+      //UPLOAD BEGIN
+      //Enviando o comando para o servidor
+      n = write(aux_sockfd, buffer, BUFFERSIZE); 
+      if (n == ERROR) {
+        perror("ERROR writing to socket\n");
+        exit(ERROR);
+      }
+      
+      //Recebendo o nome do arquivo
+      bzero(buffer, BUFFERSIZE);
+      n = read(aux_sockfd, buffer, BUFFERSIZE);
+        if (n == ERROR) {
+          perror("ERROR read from socket\n");
+          exit(ERROR);
+      }
+      
+      //Enviando o arquivo
+      send_(aux_sockfd, buffer);
+
+      //UPLOAD END
+    } else if (strcmp(cmd, "download") == 0) {
+      //Enviando o comando para o servidor
+      n = write(aux_sockfd, buffer, BUFFERSIZE); 
+      if (n == ERROR) {
+        perror("ERROR writing to socket\n");
+        exit(ERROR);
+      }
+      //Pasta de destino
+      strcpy(dir, "./files/out/");
+      receive_(aux_sockfd, dir);
+
+    } else if(strcmp(cmd, "exit") == 0) {
+      n = write(aux_sockfd, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR writing to socket\n");
+        exit(ERROR);
+      }
+
+      printf("exiting\n");
       disconnectSync = 1;
       close(aux_sockfd);
       pthread_exit(NULL);

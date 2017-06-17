@@ -10,6 +10,7 @@
 #include <netdb.h>
 #include <pthread.h>
 #include <sys/stat.h>
+#include <libgen.h> 
 #include "./support.h"
 
 #define SUCCESS 1
@@ -53,3 +54,5 @@ void initializeList(PFILA2 list);
 int searchForFile(char *fileName, PFILA2 fileList);
 int addFileToUser(char *name, char *extension, char *lastModified, int size, FILA2 fileList);
 int removeFileFromUser(char *fileName, FILA2 fileList);
+int send_(int socket, char *filename);
+int receive_(int socket, char path[255]);
