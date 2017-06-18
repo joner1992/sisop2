@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <libgen.h>
 #include <time.h>
+#include <dirent.h>
 #include "./support.h"
 
 #define SUCCESS 1
@@ -61,3 +62,4 @@ int send_(int socket, char *filename);
 int receive_(int socket, char path[255]);
 struct stat getAttributes(char* pathFile);
 void getFilesFromUser(char* userId, PFILA2 filesList);
+int isRegularFile(struct dirent *file);
