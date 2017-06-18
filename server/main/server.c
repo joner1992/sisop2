@@ -37,7 +37,8 @@ int verifyUserAuthentication(char *buffer, int newsockfd) {
     firstTimeUser->logged_in = 1;
     initializeList(&(firstTimeUser->filesList));
     //não tinhamos colocado na fila realmente
-    AppendFila2(&clientList, (void *) firstTimeUser);    
+    getFilesFromUser(firstTimeUser->userId, &(firstTimeUser->filesList));
+    AppendFila2(&clientList, (void *) firstTimeUser);   
     createDirectory(buffer, SERVER);
     
     return SUCCESS;

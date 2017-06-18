@@ -288,7 +288,7 @@ int receive_(int socket, char path[255]) { // Start function
   return 1;
 }
 
- struct stat getAttributes(char* pathFile) {
+struct stat getAttributes(char* pathFile) {
   struct stat attributes;
 
   if (stat(pathFile,&attributes)) {
@@ -297,4 +297,48 @@ int receive_(int socket, char path[255]) { // Start function
   }
 
   return attributes;
+}
+
+char *getFilenameExt(const char *filename) {
+    const char *dot = strrchr(filename, '.');
+    if(!dot || dot == filename) return "";
+    return dot + 1;
+}
+
+int isRegularFile(struct dirent *file) {
+  return file->d_type == DT_REG;
+}
+
+void getFilesFromUser(char* userId, PFILA2 filesList) {
+  char root[100] = "./clientsDirectories/sync_dir_";
+  char pathDirectory[255];
+  char pathFile[255];
+  struct dirent *file;
+  struct stat fileAttributes;
+  DIR* directory;
+    
+  bzero(pathDirectory, 255);
+  bzero(pathFile, 255);
+
+  sprintf(pathDirectory, "%s%s/",root,userId);
+
+  directory = opendir(pathDirectory);
+
+  if(directory) {
+    while ((file = readdir(directory)) != NULL) {
+      if(isRegularFile(file)) {
+        sprintf(pathFile,"%s%s",pathDirectory,file->d_name);
+        fileAttributes = getAttributes(pathFile);
+        
+        char lastModified[36];
+        bzero(lastModified, 36);
+        strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file->st_mtime));
+
+        addFileToUser(file->d_name, getFilenameExt(file->d_name), lastModified, fileAttributes.st_size, filesList);
+        // printf("%s\n", file->d_name);
+        // printf("%ld\n", fileAttributes.st_mtime);
+        // printf("%lld\n", fileAttributes.st_size);
+      }
+    }
+  }
 }
