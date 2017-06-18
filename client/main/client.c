@@ -161,12 +161,12 @@ void *syncSocket() {
 
 void *auxSocketFunctions() {
   char buffer[BUFFERSIZE];
-  
-  
-  
+  char cmd[8] = "";
+  char dir[255];
   while(1) {
     bzero(buffer, BUFFERSIZE);
-    char cmd[8] = "";
+    bzero(dir, 255);
+    bzero(cmd, 8);
     int i = 0;
     
     printf(">> ");
@@ -179,7 +179,7 @@ void *auxSocketFunctions() {
         i++;
     }    
     
-    printf("\n BUFFER: %s  / COMANDO %s", buffer, cmd);
+    printf("\n BUFFER: %s  / COMANDO %s \n", buffer, cmd);
     //getchar();
     
     if(strcmp(cmd, "upload") == 0) {
@@ -209,12 +209,9 @@ void *auxSocketFunctions() {
         exit(ERROR);
       }
       //Pasta de destino
-      char dir[255]= "./files/out/";
+      strcpy(dir, "./files/out/");
       receive_(aux_sockfd, dir);
     }
-    
-    
-    
   }
 }
 

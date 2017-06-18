@@ -94,10 +94,12 @@ int send_(int socket, char* filename) {
 int receive_(int socket, char path[255]) { // Start function 
 
   int recv_size = 0,size = 0, read_size, write_size, packet_index =1,stat;
-  
   char filearray[BUFFER_TRANSFER + 1];
   char fullPath[255];
   char filename[255];
+  
+  bzero(fullPath, 255);
+  bzero(filename, 255);
   
   FILE *file;
   
