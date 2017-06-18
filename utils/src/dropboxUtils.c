@@ -329,7 +329,6 @@ void getFilesFromUser(char* userId, PFILA2 filesList) {
         char lastModified[36];
         bzero(lastModified, 36);
         strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&fileAttributes.st_mtime));
-
         addFileToUser(file->d_name, getFilenameExt(file->d_name), lastModified, fileAttributes.st_size, filesList);
         // printf("%s\n", file->d_name);
         // printf("%ld\n", fileAttributes.st_mtime);

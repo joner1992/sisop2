@@ -226,20 +226,25 @@ char *cropUserId(char *auxSocketName) {
 }
 
 
-char *listFiles(PFILA2 clientList, char *userId) {
+char *listFiles(PFILA2 clientList, char *userId, int socket) {
   printf("LIST FILES:\n");
   char buffer[BUFFERSIZE];
   ClientInfo *user;
   if(searchForUserId(clientList, userId) == SUCCESS) {
     user = (ClientInfo *) GetAtIteratorFila2(clientList);
     bzero(buffer, BUFFERSIZE);
-    getFiles(buffer, &(user->filesList));
+    getFiles(buffer, &(user->filesList), socket);
+    
     printf("%s", buffer);
   }
   return buffer;
 }
 
-char *getFiles(char *buffer, PFILA2 fila) {
+char *getFiles(char *buffer, PFILA2 fila, int socket) {
+  char bufferPrint[BUFFERSIZE];
+  int n;
+
+  sendMessage(socket, "List of Files:");
 
   int first;
   first = FirstFila2(fila);
@@ -248,25 +253,44 @@ char *getFiles(char *buffer, PFILA2 fila) {
     void *fileFound;
     UserFiles *fileWanted;
     fileWanted = (UserFiles*) GetAtIteratorFila2(fila);
+
     strcat(buffer, fileWanted->name);
     strcat(buffer, "\n");
+
+    sendMessage(socket, fileWanted->name);
+
     int iterator = 0;
     while (iterator == 0) {
       iterator = NextFila2(fila);
       fileFound = GetAtIteratorFila2(fila);
       if (fileFound == NULL) {
+          sendMessage(socket, "exit");
           return buffer;
       }
       else {
         fileWanted = (UserFiles*) fileFound;
         strcat(buffer, fileWanted->name);
         strcat(buffer, "\n");
+        
+        sendMessage(socket, fileWanted->name);
       }
     }
   }
   else {
+    sendMessage(socket, "Server has empty directory.");
+    sendMessage(socket, "exit");
+
     strcat(buffer, "Server has empty directory. \n");
     return buffer;
   }
   return buffer;
+}
+
+void sendMessage (int socket, char *buffer){
+  int n;
+  n = write(socket, buffer, BUFFERSIZE);
+  if (n == ERROR) {
+    perror("ERROR writing to socket\n");
+    exit(ERROR);
+  }
 }

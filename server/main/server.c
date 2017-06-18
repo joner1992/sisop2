@@ -36,7 +36,9 @@ int verifyUserAuthentication(char *buffer, int newsockfd) {
     firstTimeUser->numDevices = 1;
     firstTimeUser->logged_in = 1;
     initializeList(&(firstTimeUser->filesList));
-    //não tinhamos colocado na fila realmente
+    /*
+      Talvez passar o mutex pra função getFiles pq mexe com fileList?
+    */
     getFilesFromUser(firstTimeUser->userId, &(firstTimeUser->filesList));
     AppendFila2(&clientList, (void *) firstTimeUser);   
     createDirectory(buffer, SERVER);
@@ -152,14 +154,11 @@ void *auxClientThread(void* auxThread){
     }
     
     if(strcmp(command, "list") == 0) {
-      
-      strcpy(buffer, listFiles(&clientList, newAuxThread->userId));
-      n = write(newAuxThread->socketId, buffer, BUFFERSIZE);
-      if(n == ERROR) {
-        perror("ERROR writing to socket \n");
-        exit(ERROR);
-      }
-
+      pthread_mutex_lock(&clientListMutex);
+        pthread_mutex_lock(&user->fileListMutex);
+          strcpy(buffer, listFiles(&clientList, newAuxThread->userId, newAuxThread->socketId));
+        pthread_mutex_unlock(&user->fileListMutex);
+      pthread_mutex_unlock(&clientListMutex);
     } else if(strcmp(command, "exit") == 0) {
       //cliente pediu para se desconectar, da close nos 2 sockets e mata as 2 threads
       pthread_mutex_lock(&clientListMutex);
