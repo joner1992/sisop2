@@ -39,7 +39,7 @@ int verifyUserAuthentication(char *buffer, int newsockfd) {
     /*
       Talvez passar o mutex pra função getFiles pq mexe com fileList?
     */
-    getFilesFromUser(firstTimeUser->userId, &(firstTimeUser->filesList));
+    getFilesFromUser(firstTimeUser->userId, &(firstTimeUser->filesList), SERVER);
     AppendFila2(&clientList, (void *) firstTimeUser);   
     createDirectory(buffer, SERVER);
     

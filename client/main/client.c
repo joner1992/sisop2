@@ -245,6 +245,7 @@ void *auxSocketFunctions() {
       */
       strcat(completePath, removeFileNameFromPath(fileName));
 
+      //NECESSÁRIO?!?!?!?!?!?
       struct stat file_stat = getAttributes(completePath);
       strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
       pthread_mutex_lock(&clientFileListMutex);
@@ -318,6 +319,9 @@ int main(int argc, char *argv[]) {
     }
     
     if(connectSocket() == SUCCESS) {
+      //Preenche lista de arquivos com informações de diretório da home
+      getFilesFromUser(userId, &fileList, CLIENT);
+
       //cria socket sync
       pthread_t syncSocketThread;
       pthread_attr_t attributesSyncSocketThread;

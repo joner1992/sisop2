@@ -305,7 +305,7 @@ int isRegularFile(struct dirent *file) {
   return file->d_type == DT_REG;
 }
 
-void getFilesFromUser(char* userId, PFILA2 filesList) {
+void getFilesFromUser(char* userId, PFILA2 filesList, int server) {
   char root[100] = "./clientsDirectories/sync_dir_";
   char pathDirectory[255];
   char pathFile[255];
@@ -316,7 +316,12 @@ void getFilesFromUser(char* userId, PFILA2 filesList) {
   bzero(pathDirectory, 255);
   bzero(pathFile, 255);
 
-  sprintf(pathDirectory, "%s%s/",root,userId);
+  if(server) {
+    sprintf(pathDirectory, "%s%s/",root,userId);
+  }
+  else {
+      strcpy(pathDirectory, getUserDirectory(userId));
+  }
 
   directory = opendir(pathDirectory);
 

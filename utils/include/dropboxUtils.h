@@ -61,7 +61,7 @@ int removeFileFromUser(char *fileName, PFILA2 fileList);
 int send_(int socket, char *filename);
 int receive_(int socket, char path[255]);
 struct stat getAttributes(char* pathFile);
-void getFilesFromUser(char* userId, PFILA2 filesList);
+void getFilesFromUser(char* userId, PFILA2 filesList, int isServer);
 int isRegularFile(struct dirent *file);
 /*
     se o printing for
