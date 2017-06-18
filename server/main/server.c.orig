@@ -157,13 +157,8 @@ void *auxClientThread(void* auxThread){
     }
     
     if(strcmp(command, "list") == 0) {
-      
-      strcpy(buffer, listFiles(&clientList, newAuxThread->userId));
-      n = write(newAuxThread->socketId, buffer, BUFFERSIZE);
-      if(n == ERROR) {
-        perror("ERROR writing to socket \n");
-        exit(ERROR);
-      }
+      printf("chamou list\n");
+      listFiles(&clientList, newAuxThread->userId);
 
     } else if(strcmp(command, "exit") == 0) {
       //cliente pediu para se desconectar, da close nos 2 sockets e mata as 2 threads
@@ -175,6 +170,36 @@ void *auxClientThread(void* auxThread){
       pthread_exit(NULL);
 
     } else if(strcmp(command, "upload") == 0) {
+<<<<<<< HEAD
+      bzero(buffer, BUFFERSIZE);
+      strcpy(buffer, fileName);
+      
+      n = write(newAuxThread->socketId, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR writing to socket\n");
+        exit(ERROR);
+      }
+      
+      char path[255]= "./clientsDirectories/sync_dir_";
+      sprintf(path,"%s%s/",path, newAuxThread->userId);
+
+
+      if(receive_(newAuxThread->socketId, path)) {
+        if(searchForUserId(&clientList, newAuxThread->userId) == SUCCESS){
+          ClientInfo *user;
+          user = (ClientInfo *) GetAtIteratorFila2(&clientList);
+          
+          struct stat file_stat = getAttributes(path);
+          char lastModified[36];
+          strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
+          addFileToUser(basename(path), ".txt", lastModified, file_stat.st_size, &(user->filesList));
+        }
+      }
+
+
+
+
+=======
       pthread_mutex_lock(&(user->downloadUploadMutex));
         bzero(buffer, BUFFERSIZE);
         strcpy(buffer, fileName);
@@ -189,7 +214,7 @@ void *auxClientThread(void* auxThread){
         sprintf(path,"%s%s/",path, newAuxThread->userId);
 
 
-      if(receive_(newAuxThread->socketId, path)) {
+        receive_(newAuxThread->socketId, path);
         pthread_mutex_lock(&clientListMutex);
           if(searchForUserId(&clientList, newAuxThread->userId) == SUCCESS){
             ClientInfo *user;
@@ -199,12 +224,12 @@ void *auxClientThread(void* auxThread){
             char lastModified[36];
             strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
             //**********************pthread_mutex_lock(&fileList)
-              addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &(user->filesList));
+              addFileToUser(basename(path), ".txt", lastModified, file_stat.st_size, &(user->filesList));
             //**********************pthread_mutex_lock(&fileList)
           }
         pthread_mutex_unlock(&clientListMutex);
       pthread_mutex_unlock(&(user->downloadUploadMutex));
-
+>>>>>>> fe8a241be7b9eafba3d38d44df7a7813fc2ce662
     } else if(strcmp(command, "download") == 0) {
       pthread_mutex_lock(&(user->downloadUploadMutex));
         char path[255]= "./clientsDirectories/sync_dir_";
@@ -213,7 +238,6 @@ void *auxClientThread(void* auxThread){
       pthread_mutex_unlock(&(user->downloadUploadMutex));
     } 
   }
-}
 }
 
 void *acceptClient() {
@@ -325,4 +349,6 @@ int main(int argc, char *argv[])
   }        
   return 0;
 }
+
+
 

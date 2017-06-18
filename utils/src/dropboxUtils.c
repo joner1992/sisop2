@@ -18,13 +18,27 @@ void createDirectory(char *argv, int server) {
             strcat(home, "/sync_dir_");
             strcat(home, argv);
             mkdir(home, 0777);
-            printf("Directory %s created successfully", home);
+            printf("Directory %s created successfully.\n", home);
         }
         else {
             exit(ERROR);
         }
         
     }
+}
+
+char *getUserDirectory(char *userId) {
+    char home[100] = "/home/";
+    char usr[50];
+    if(!getlogin_r(usr, 50)) {
+        strcat(home, usr);
+        strcat(home, "/sync_dir_");
+        strcat(home, userId);
+        strcat(home, "/");
+    } else {
+        exit(ERROR);
+    }
+    return home;
 }
 
 void initializeList(PFILA2 list){

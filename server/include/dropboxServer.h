@@ -1,6 +1,14 @@
 /************************************ 
 ********* HEADER PARA SERVER ********
 ************************************/
+
+pthread_mutex_t acceptingConnection;
+pthread_mutex_t userVerificationMutex;
+pthread_mutex_t disconnectMutex;
+pthread_mutex_t clientListMutex;
+pthread_mutex_t auxSocketsListMutex;
+pthread_mutex_t syncSocketsListMutex;
+
 /*  Sincroniza o servidor com o diretorio 
     “sync_dir_<nomeusuario>” com o cliente*/
 void sync_server();
@@ -34,5 +42,5 @@ char *cropUserId(char *auxSocketName);
 void disconnectClientFromServer(int socket, char *userId, PFILA2 auxSocketsList, PFILA2 syncSocketList, int isAux);
 void disconnectClient(int newsockfd);
 
-void listFiles(PFILA2 clientList, char *userId);
+char *listFiles(PFILA2 clientList, char *userId);
 char *getFiles(char *buffer, PFILA2 fila);

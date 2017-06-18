@@ -209,9 +209,13 @@ int removeFromThreadList(PFILA2 fila, char *userId, int socket) {
 
 void disconnectClientFromServer(int socket, char *userId, PFILA2 auxSocketsList, PFILA2 syncSocketList, int isAux) {  
   if(isAux == 1){   
-    removeFromThreadList(auxSocketsList, userId, socket) == SUCCESS;
+    pthread_mutex_lock(&auxSocketsListMutex);
+      removeFromThreadList(auxSocketsList, userId, socket);
+    pthread_mutex_unlock(&auxSocketsListMutex);
   } else {
-    removeFromThreadList(syncSocketList, userId, socket) == SUCCESS;
+    pthread_mutex_lock(&syncSocketsListMutex);
+      removeFromThreadList(syncSocketList, userId, socket);
+    pthread_mutex_unlock(&syncSocketsListMutex);
   }
 }
 
@@ -222,24 +226,24 @@ char *cropUserId(char *auxSocketName) {
 }
 
 
-void listFiles(PFILA2 clientList, char *userId) {
-  printf("LIST FILES");
+char *listFiles(PFILA2 clientList, char *userId) {
+  printf("LIST FILES:\n");
+  char buffer[BUFFERSIZE];
   ClientInfo *user;
   if(searchForUserId(clientList, userId) == SUCCESS) {
     user = (ClientInfo *) GetAtIteratorFila2(clientList);
-    char buffer[BUFFERSIZE];
-
     bzero(buffer, BUFFERSIZE);
-    strcat(buffer, getFiles(buffer, &(user->filesList)));
+    getFiles(buffer, &(user->filesList));
     printf("%s", buffer);
   }
+  return buffer;
 }
 
 char *getFiles(char *buffer, PFILA2 fila) {
 
   int first;
   first = FirstFila2(fila);
-
+  bzero(buffer, BUFFERSIZE);
   if (first == LISTSUCCESS) {
     void *fileFound;
     UserFiles *fileWanted;

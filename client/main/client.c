@@ -98,13 +98,13 @@ int connectSocket() {
       }
 
       if(strcmp(buffer, "OK") == 0){
-        //cria thread sync
+        createDirectory(userId, 0);
         return SUCCESS;
       } else if(strcmp(buffer, "NOTOK") == 0) {
         printf("Maximum devices connections reached :(\n");
         exit(ERROR);
         return ERROR;
-      } 
+      }
     }
 }
 
@@ -226,7 +226,7 @@ void *auxSocketFunctions() {
         exit(ERROR);
       }
       //Pasta de destino
-      strcpy(dir, "./files/out/");
+      strcpy(dir, getUserDirectory(userId));
       receive_(aux_sockfd, dir);
       
       //AVISAR BIIICAAAAAAAAAAAAAAAAAAAAAAAAAAA
@@ -246,6 +246,20 @@ void *auxSocketFunctions() {
       disconnectSync = 1;
       close(aux_sockfd);
       pthread_exit(NULL);
+    }
+    else if(strcmp(cmd, "list") == 0) {
+      n = write(aux_sockfd, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR writing to socket\n");
+        exit(ERROR);
+      }
+      bzero(buffer, BUFFERSIZE);
+      n = read(aux_sockfd, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR writing to socket\n");
+        exit(ERROR);
+      }
+      printf("%s", buffer);
     }
   }
 }

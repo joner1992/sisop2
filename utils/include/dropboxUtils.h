@@ -42,7 +42,8 @@ typedef struct client	{
  char userId[MAXNAME]; // id do usuario no servidor, que devera ser unico. Informado pela linha de comando
  FILA2 filesList; //metadados de cada arquivo que o cliente possui no servidor
  int logged_in; // cliente esta logado ou nao
- pthread_mutex_t loginMutex;
+ pthread_mutex_t downloadUploadMutex;
+ pthread_mutex_t fileListMutex;
 } ClientInfo;
 
 typedef struct auxclient {
@@ -51,6 +52,7 @@ typedef struct auxclient {
 } clientThread;
 
 void createDirectory(char *argv, int server);
+char* getUserDirectory(char *userId);
 void initializeList(PFILA2 list);
 int searchForFile(char *fileName, PFILA2 fileList);
 int addFileToUser(char *name, char *extension, char *lastModified, int size, PFILA2 fileList);
