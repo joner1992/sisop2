@@ -63,3 +63,11 @@ int receive_(int socket, char path[255]);
 struct stat getAttributes(char* pathFile);
 void getFilesFromUser(char* userId, PFILA2 filesList);
 int isRegularFile(struct dirent *file);
+/*
+    se o printing for
+    2 = printa sem pular linhas entre os receives
+    1 = printa pulando linhas entre os receives
+    0 = não printa
+
+*/
+char *receiveMessage (int socket, char *conditionToStop, int printing);

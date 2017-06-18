@@ -352,3 +352,26 @@ char *removeFileNameFromPath(char *path){
 
     return fileName;
 }
+
+char *receiveMessage (int socket, char *conditionToStop, int printing) {
+    int n;
+    char buffer[BUFFERSIZE];
+    
+    while(1){
+        bzero(buffer, BUFFERSIZE);
+        n = read(socket, buffer, BUFFERSIZE);
+        if (n == ERROR) {
+        perror("ERROR reading to socket\n");
+        exit(ERROR);
+        }
+
+        if(strcmp(buffer, conditionToStop) == 0) {
+            break;
+        } else if(printing == 1) {
+            printf("%s\n", buffer);
+        } else if (printing == 2){
+            printf("%s", buffer);
+        }
+    }
+    return buffer;
+}

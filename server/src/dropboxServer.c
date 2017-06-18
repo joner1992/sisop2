@@ -240,6 +240,15 @@ char *listFiles(PFILA2 clientList, char *userId, int socket) {
   return buffer;
 }
 
+void sendMessage (int socket, char *buffer) {
+  int n;
+  n = write(socket, buffer, BUFFERSIZE);
+  if (n == ERROR) {
+    perror("ERROR writing to socket\n");
+    exit(ERROR);
+  }
+}
+
 char *getFiles(char *buffer, PFILA2 fila, int socket) {
   char bufferPrint[BUFFERSIZE];
   int n;
@@ -284,13 +293,4 @@ char *getFiles(char *buffer, PFILA2 fila, int socket) {
     return buffer;
   }
   return buffer;
-}
-
-void sendMessage (int socket, char *buffer){
-  int n;
-  n = write(socket, buffer, BUFFERSIZE);
-  if (n == ERROR) {
-    perror("ERROR writing to socket\n");
-    exit(ERROR);
-  }
 }

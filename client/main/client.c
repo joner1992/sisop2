@@ -289,17 +289,12 @@ void *auxSocketFunctions() {
       }
       while(1){
         bzero(buffer, BUFFERSIZE);
-        n = read(aux_sockfd, buffer, BUFFERSIZE);
-        if (n == ERROR) {
-          perror("ERROR writing to socket\n");
-          exit(ERROR);
-        }
+        strcpy(buffer, receiveMessage(aux_sockfd, "exit", 1));
+
         if(strcmp(buffer, "exit") == 0){
           break;
-        } else {
-          printf("%s\n", buffer);
-        }
-      }
+        }        
+      }  
     }
   }
 }

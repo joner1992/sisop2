@@ -44,3 +44,4 @@ void disconnectClient(int newsockfd);
 
 char *listFiles(PFILA2 clientList, char *userId, int socket);
 char *getFiles(char *buffer, PFILA2 fila, int socket);
+void sendMessage (int socket, char *buffer);
