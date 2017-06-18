@@ -91,17 +91,11 @@ void *syncClientThread(void* syncThread){
   //colocar o código do sync aqui
   while(1){
     sleep(3);
-    // while(1){
-    //   bzero(buffer, BUFFERSIZE);
-    //   n = read(newSyncThread->socketId, buffer, BUFFERSIZE);
-    //   if (n == ERROR) {
-    //     pthread_exit(NULL);
-    //   } else if(strcmp(buffer, "BYE")) {
-    //     pthread_exit(NULL); 
-    //   } else {
-    //     break;
-    //   }
-    // }
+    /* 
+      É IMPORTANTE DAR UM WRITE DE LIXO OU QUALQUER COISA PRA VERIFICAR SE O SOCKET 
+      TA ATIVO ANTES DE COMEÇAR E CASO O CLIENT INTERROMPA NO MEIO, NO PROXIMO WRITE 
+      QUE DER ERRO, DAR O PTHREAD_EXIT TAMBEM!
+    */
     bzero(buffer, BUFFERSIZE);
     strcpy(buffer, "TEST");
     n = write(newSyncThread->socketId, buffer, BUFFERSIZE);
@@ -195,9 +189,9 @@ void *auxClientThread(void* auxThread){
           struct stat file_stat = getAttributes(path);
           char lastModified[36];
           strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
-          //**********************pthread_mutex_lock(&fileList)
-          addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &(user->filesList));
-          //**********************pthread_mutex_lock(&fileList)
+          pthread_mutex_lock(&user->fileListMutex);
+            addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &(user->filesList));
+          pthread_mutex_unlock(&user->fileListMutex);
         pthread_mutex_unlock(&clientListMutex);
       }
       pthread_mutex_unlock(&(user->downloadUploadMutex));

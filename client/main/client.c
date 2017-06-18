@@ -11,6 +11,9 @@ int aux_sockfd, m;
 struct sockaddr_in aux_serv_addr;
 struct hostent *aux_server;
 
+pthread_mutex_t clientFileListMutex;
+
+
 int disconnectSync = 0;
 FILA2 fileList;
 
@@ -244,7 +247,9 @@ void *auxSocketFunctions() {
 
       struct stat file_stat = getAttributes(completePath);
       strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
-      addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &fileList);
+      pthread_mutex_lock(&clientFileListMutex);
+        addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &fileList);
+      pthread_mutex_unlock(&clientFileListMutex);
 
     } else if (strcmp(command, "download") == 0) {
       //Enviando o comando para o servidor
@@ -260,7 +265,9 @@ void *auxSocketFunctions() {
         strcat(completePath, fileName);
         struct stat file_stat = getAttributes(completePath);
         strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
-        addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &fileList);
+        pthread_mutex_lock(&clientFileListMutex);
+          addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &fileList);
+        pthread_mutex_unlock(&clientFileListMutex);
       }  
     } else if(strcmp(command, "exit") == 0) {
       n = write(aux_sockfd, bufferForServer, BUFFERSIZE);
