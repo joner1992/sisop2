@@ -190,32 +190,30 @@ void *auxClientThread(void* auxThread){
         sprintf(path,"%s%s/",path, newAuxThread->userId);
 
 
-      if(receive_(newAuxThread->socketId, path)) {
-        pthread_mutex_lock(&clientListMutex);
-          if(searchForUserId(&clientList, newAuxThread->userId) == SUCCESS){
-            ClientInfo *user;
-            user = (ClientInfo *) GetAtIteratorFila2(&clientList);
-            
-            struct stat file_stat = getAttributes(path);
-            char lastModified[36];
-            strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
-            //**********************pthread_mutex_lock(&fileList)
-              addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &(user->filesList));
-            //**********************pthread_mutex_lock(&fileList)
-          }
+      if(receive_(newAuxThread->socketId, path) == SUCCESS) {
+        pthread_mutex_lock(&clientListMutex);       
+          struct stat file_stat = getAttributes(path);
+          char lastModified[36];
+          strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
+          //**********************pthread_mutex_lock(&fileList)
+          addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &(user->filesList));
+          //**********************pthread_mutex_lock(&fileList)
         pthread_mutex_unlock(&clientListMutex);
+      }
       pthread_mutex_unlock(&(user->downloadUploadMutex));
 
     } else if(strcmp(command, "download") == 0) {
       pthread_mutex_lock(&(user->downloadUploadMutex));
+        printf("download");
         char path[255]= "./clientsDirectories/sync_dir_";
         sprintf(path,"%s%s/%s",path, newAuxThread->userId, fileName);        
         send_(newAuxThread->socketId, path);
       pthread_mutex_unlock(&(user->downloadUploadMutex));
+      printf("After mutex");
     } 
   }
 }
-}
+
 
 void *acceptClient() {
   while(1) {

@@ -172,11 +172,13 @@ void *auxSocketFunctions() {
   char cmd[8] = "";
   char dir[255];
   char bufferExit[BUFFERSIZE];
+  char lastModified[36];
 
   while(1) {
     bzero(buffer, BUFFERSIZE);
     bzero(dir, 255);
     bzero(cmd, 8);
+    bzero(lastModified, 36);
     int i = 0;
 
     printf(">> ");
@@ -212,7 +214,6 @@ void *auxSocketFunctions() {
       send_(aux_sockfd, buffer);
 
       struct stat file_stat = getAttributes(buffer);
-      char lastModified[36];
       strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
       addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &fileList);
 
@@ -227,13 +228,12 @@ void *auxSocketFunctions() {
       }
       //Pasta de destino
       strcpy(dir, getUserDirectory(userId));
-      receive_(aux_sockfd, dir);
+      if(receive_(aux_sockfd, dir) == SUCCESS) {
+        struct stat file_stat = getAttributes(buffer);
+        strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
+        addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &fileList);
+      }
       
-      //AVISAR BIIICAAAAAAAAAAAAAAAAAAAAAAAAAAA
-      struct stat file_stat = getAttributes(buffer);
-      char lastModified[36];
-      strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
-      addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &fileList);
 
     } else if(strcmp(cmd, "exit") == 0) {
       n = write(aux_sockfd, buffer, BUFFERSIZE);

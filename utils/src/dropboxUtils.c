@@ -93,7 +93,6 @@ int addFileToUser(char *name, char *extension, char *lastModified, int size, PFI
         strcpy(newFile->last_modified, lastModified);
         newFile->size = size;
         if(AppendFila2(fileList, (void *) newFile) == LISTSUCCESS) {
-            printf("File added to list correctly! \n");
             return SUCCESS;
         }
     }
@@ -104,10 +103,8 @@ int addFileToUser(char *name, char *extension, char *lastModified, int size, PFI
         strcpy(newFile->extension, extension);
         strcpy(newFile->last_modified, lastModified);
         newFile->size = size;
-        printf("File has been updated in list structure!\n");
         return SUCCESS;      
     }
-    printf("ERROR on adding file to LIST");
     return ERROR;
 }
 
