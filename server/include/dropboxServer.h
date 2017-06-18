@@ -1,6 +1,14 @@
 /************************************ 
 ********* HEADER PARA SERVER ********
 ************************************/
+
+pthread_mutex_t acceptingConnection;
+pthread_mutex_t userVerificationMutex;
+pthread_mutex_t disconnectMutex;
+pthread_mutex_t clientListMutex;
+pthread_mutex_t auxSocketsListMutex;
+pthread_mutex_t syncSocketsListMutex;
+
 /*  Sincroniza o servidor com o diretorio 
     “sync_dir_<nomeusuario>” com o cliente*/
 void sync_server();

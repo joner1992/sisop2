@@ -209,9 +209,13 @@ int removeFromThreadList(PFILA2 fila, char *userId, int socket) {
 
 void disconnectClientFromServer(int socket, char *userId, PFILA2 auxSocketsList, PFILA2 syncSocketList, int isAux) {  
   if(isAux == 1){   
-    removeFromThreadList(auxSocketsList, userId, socket) == SUCCESS;
+    pthread_mutex_lock(&auxSocketsListMutex);
+      removeFromThreadList(auxSocketsList, userId, socket) == SUCCESS;
+    pthread_mutex_unlock(&auxSocketsListMutex);
   } else {
-    removeFromThreadList(syncSocketList, userId, socket) == SUCCESS;
+    pthread_mutex_lock(&syncSocketsListMutex);
+      removeFromThreadList(syncSocketList, userId, socket) == SUCCESS;
+    pthread_mutex_unlock(&syncSocketsListMutex);
   }
 }
 

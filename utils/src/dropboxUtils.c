@@ -27,6 +27,20 @@ void createDirectory(char *argv, int server) {
     }
 }
 
+char *getUserDirectory(char *userId) {
+    char home[100] = "/home/";
+    char usr[50];
+    if(!getlogin_r(usr, 50)) {
+        strcat(home, usr);
+        strcat(home, "/sync_dir_");
+        strcat(home, userId);
+        strcat(home, "/");
+    } else {
+        exit(ERROR);
+    }
+    return home;
+}
+
 void initializeList(PFILA2 list){
   if(CreateFila2(list) != LISTSUCCESS) { // 0 = linked list initialized successfully
     perror("ERROR initializing linked list");

@@ -98,13 +98,13 @@ int connectSocket() {
       }
 
       if(strcmp(buffer, "OK") == 0){
-        //cria thread sync
+        createDirectory(userId, 0);
         return SUCCESS;
       } else if(strcmp(buffer, "NOTOK") == 0) {
         printf("Maximum devices connections reached :(\n");
         exit(ERROR);
         return ERROR;
-      } 
+      }
     }
 }
 
@@ -226,7 +226,7 @@ void *auxSocketFunctions() {
         exit(ERROR);
       }
       //Pasta de destino
-      strcpy(dir, "./files/out/");
+      strcpy(dir, getUserDirectory(userId));
       receive_(aux_sockfd, dir);
 
     } else if(strcmp(cmd, "exit") == 0) {

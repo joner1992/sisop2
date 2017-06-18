@@ -6,15 +6,11 @@
 int sockfd;
 struct sockaddr_in serv_addr;
 int server_port;
+
 // Queue for clients structs
 FILA2 clientList;
 FILA2 auxSocketsList;
 FILA2 syncSocketsList;
-pthread_mutex_t acceptingConnection;
-pthread_mutex_t userVerificationMutex;
-pthread_mutex_t disconnectMutex;
-
-
 
 int verifyAuxSocket(char *buffer) {
   char buffercmp[BUFFERSIZE];
@@ -26,10 +22,11 @@ int verifyAuxSocket(char *buffer) {
 }
 
 int verifyUserAuthentication(char *buffer, int newsockfd) {
+  pthread_mutex_lock(&clientListMutex);
   if(searchForUserId(&clientList, buffer) == SUCCESS) {
     if(secondLogin(&clientList, buffer) == ERROR){
       return ERROR;
-    } else {      
+    } else {
       return SUCCESS;
     }
   }
@@ -44,8 +41,7 @@ int verifyUserAuthentication(char *buffer, int newsockfd) {
     createDirectory(buffer, SERVER);
     
     return SUCCESS;
-  }
-  
+  }  
 }
 
 int getPort(char *argv) {
@@ -84,6 +80,13 @@ void *syncClientThread(void* syncThread){
   char buffer[BUFFERSIZE];
   clientThread *newSyncThread = syncThread;
 
+  pthread_mutex_lock(&clientListMutex);
+    if(searchForUserId(&clientList, newSyncThread->userId) == SUCCESS) {
+      ClientInfo *user;
+      user = (ClientInfo *) GetAtIteratorFila2(&clientList);
+    }
+  pthread_mutex_unlock(&clientListMutex);
+
   //colocar o código do sync aqui
   while(1){
     sleep(3);
@@ -120,6 +123,13 @@ void *auxClientThread(void* auxThread){
   char content[BUFFERSIZE];
   char command[BUFFERSIZE];
   int numCommands;
+  ClientInfo *user;
+
+  pthread_mutex_lock(&clientListMutex);
+    if(searchForUserId(&clientList, newAuxThread->userId) == SUCCESS) {
+      user = (ClientInfo *) GetAtIteratorFila2(&clientList);
+    }
+  pthread_mutex_unlock(&clientListMutex);
 
   while(1){ 
     bzero(buffer, BUFFERSIZE);
@@ -150,46 +160,49 @@ void *auxClientThread(void* auxThread){
       printf("chamou list\n");
     } else if(strcmp(command, "exit") == 0) {
       //cliente pediu para se desconectar, da close nos 2 sockets e mata as 2 threads
-      pthread_mutex_lock(&disconnectMutex);
-        removeClient(&clientList, newAuxThread->userId) == SUCCESS;
+      pthread_mutex_lock(&clientListMutex);
+        removeClient(&clientList, newAuxThread->userId);
         disconnectClientFromServer(newAuxThread->socketId, newAuxThread->userId, &auxSocketsList, &syncSocketsList, 1);
         close(newAuxThread->socketId);
-      pthread_mutex_unlock(&disconnectMutex);
+      pthread_mutex_unlock(&clientListMutex);
       pthread_exit(NULL);
 
     } else if(strcmp(command, "upload") == 0) {
-      bzero(buffer, BUFFERSIZE);
-      strcpy(buffer, fileName);
-      
-      n = write(newAuxThread->socketId, buffer, BUFFERSIZE);
-      if (n == ERROR) {
-        perror("ERROR writing to socket\n");
-        exit(ERROR);
-      }
-      
-      char path[255]= "./clientsDirectories/sync_dir_";
-      sprintf(path,"%s%s/",path, newAuxThread->userId);
-
-
-      receive_(newAuxThread->socketId, path);
-
-      if(searchForUserId(&clientList, newAuxThread->userId) == SUCCESS){
-        ClientInfo *user;
-        user = (ClientInfo *) GetAtIteratorFila2(&clientList);
+      pthread_mutex_lock(&(user->downloadUploadMutex));
+        bzero(buffer, BUFFERSIZE);
+        strcpy(buffer, fileName);
         
-        struct stat file_stat = getAttributes(path);
-        char lastModified[36];
-        strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
-        addFileToUser(basename(path), ".txt", lastModified, file_stat.st_size, &(user->filesList));
-      }
+        n = write(newAuxThread->socketId, buffer, BUFFERSIZE);
+        if (n == ERROR) {
+          perror("ERROR writing to socket\n");
+          exit(ERROR);
+        }
+        
+        char path[255]= "./clientsDirectories/sync_dir_";
+        sprintf(path,"%s%s/",path, newAuxThread->userId);
 
 
+        receive_(newAuxThread->socketId, path);
+        pthread_mutex_lock(&clientListMutex);
+          if(searchForUserId(&clientList, newAuxThread->userId) == SUCCESS){
+            ClientInfo *user;
+            user = (ClientInfo *) GetAtIteratorFila2(&clientList);
+            
+            struct stat file_stat = getAttributes(path);
+            char lastModified[36];
+            strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
+            //**********************pthread_mutex_lock(&fileList)
+              addFileToUser(basename(path), ".txt", lastModified, file_stat.st_size, &(user->filesList));
+            //**********************pthread_mutex_lock(&fileList)
+          }
+        pthread_mutex_unlock(&clientListMutex);
+      pthread_mutex_unlock(&(user->downloadUploadMutex));
     } else if(strcmp(command, "download") == 0) {
-      char path[255]= "./clientsDirectories/sync_dir_";
-      
-      sprintf(path,"%s%s/%s",path, newAuxThread->userId, fileName);
-      
-      send_(newAuxThread->socketId, path);
+      pthread_mutex_lock(&(user->downloadUploadMutex));
+        char path[255]= "./clientsDirectories/sync_dir_";
+        sprintf(path,"%s%s/%s",path, newAuxThread->userId, fileName);        
+        send_(newAuxThread->socketId, path);
+      pthread_mutex_unlock(&(user->downloadUploadMutex));
     } 
   }
 }
@@ -232,6 +245,7 @@ void *acceptClient() {
 
     }
     else if(verifyUserAuthentication(buffer, newsockfd) == SUCCESS){
+        pthread_mutex_unlock(&clientListMutex);
         //aqui ele já adicionou 1 no numero de devices e já está criando a thread para continuar utilizando o no sync.
         clientThread *syncSocket = (clientThread*) malloc(sizeof(clientThread));
         strcpy(syncSocket->userId, buffer);
@@ -295,8 +309,6 @@ int main(int argc, char *argv[])
     pthread_create(&acceptThread,&attributesAcceptThread,acceptClient,NULL);
 
     pthread_join(acceptThread, NULL);
-    printf("*************\nFECHOU O PROGRAMA\n*************");
-    //close(sockfd);
   }
   else 
   {
