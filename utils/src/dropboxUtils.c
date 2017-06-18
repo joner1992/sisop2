@@ -71,19 +71,28 @@ int searchForFile(char *fileName, PFILA2 fileList) {
 
 //FAZER!! tentar fazer de uma forma que sirva tanto pro client quanto para o server
 int addFileToUser(char *name, char *extension, char *lastModified, int size, PFILA2 fileList){
-    //adicionar um novo filename ao user
-    
-    UserFiles *newFile = (UserFiles *) malloc(sizeof(UserFiles));
-    strcpy(newFile->name, name);
-    strcpy(newFile->extension, extension);
-    strcpy(newFile->last_modified, lastModified);
-    newFile->size = size;
 
-    if(AppendFila2(&fileList, (void *) newFile) == LISTSUCCESS) {
-        printf("File added to list correctly! \n");
-        return SUCCESS;
+    if(searchForFile(name, fileList) != SUCCESS){
+        UserFiles *newFile = (UserFiles *) malloc(sizeof(UserFiles));
+        strcpy(newFile->name, name);
+        strcpy(newFile->extension, extension);
+        strcpy(newFile->last_modified, lastModified);
+        newFile->size = size;
+        if(AppendFila2(fileList, (void *) newFile) == LISTSUCCESS) {
+            printf("File added to list correctly! \n");
+            return SUCCESS;
+        }
     }
-    
+    else{
+        UserFiles *newFile;
+        newFile = (UserFiles *) GetAtIteratorFila2(fileList);
+        strcpy(newFile->name, name);
+        strcpy(newFile->extension, extension);
+        strcpy(newFile->last_modified, lastModified);
+        newFile->size = size;
+        printf("File has been updated in list structure!\n");
+        return SUCCESS;      
+    }
     printf("ERROR on adding file to LIST");
     return ERROR;
 }

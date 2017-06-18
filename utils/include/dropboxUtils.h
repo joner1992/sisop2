@@ -17,7 +17,7 @@
 #define SUCCESS 1
 #define LISTSUCCESS 0
 #define ERROR -1
-#define MAXNAME 24
+#define MAXNAME 40
 #define MAXFILES 100
 #define BUFFERSIZE 1024
 #define DEFAULTPORT 12001
