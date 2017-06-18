@@ -279,7 +279,7 @@ int receive_(int socket, char path[255]) { // Start function
 
   if (stat(pathFile,&attributes)) {
         perror("ERROR Get attributes from file");
-        exit(-1);
+        return;
   }
 
   return attributes;
