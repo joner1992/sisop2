@@ -33,3 +33,6 @@ char *cropUserId(char *auxSocketName);
 */
 void disconnectClientFromServer(int socket, char *userId, PFILA2 auxSocketsList, PFILA2 syncSocketList, int isAux);
 void disconnectClient(int newsockfd);
+
+void listFiles(PFILA2 clientList, char *userId);
+char *getFiles(char *buffer, PFILA2 fila);

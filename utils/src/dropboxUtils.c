@@ -72,7 +72,7 @@ int searchForFile(char *fileName, PFILA2 fileList) {
 //FAZER!! tentar fazer de uma forma que sirva tanto pro client quanto para o server
 int addFileToUser(char *name, char *extension, char *lastModified, int size, PFILA2 fileList){
 
-    if(searchForFile(name, fileList) != SUCCESS){
+    if(searchForFile(name, fileList) != SUCCESS) {
         UserFiles *newFile = (UserFiles *) malloc(sizeof(UserFiles));
         strcpy(newFile->name, name);
         strcpy(newFile->extension, extension);
@@ -99,8 +99,8 @@ int addFileToUser(char *name, char *extension, char *lastModified, int size, PFI
 
 int removeFileFromUser(char *fileName, PFILA2 fileList){
     //fazer remoção do filename do user
-    if(searchForFile(fileName, &fileList) == SUCCESS) {
-        if(DeleteAtIteratorFila2(&fileList) == LISTSUCCESS) {
+    if(searchForFile(fileName, fileList) == SUCCESS) {
+        if(DeleteAtIteratorFila2(fileList) == LISTSUCCESS) {
             printf("FILE %s removed successfully from list", fileName);
             return SUCCESS;
         }
@@ -110,13 +110,6 @@ int removeFileFromUser(char *fileName, PFILA2 fileList){
     }
     printf("FILE not found in list");
     return ERROR;
-}
-
-int updateFileFromUser(char *fileName, FILA2 fileList){
-    //atualiza Size ao fazer download de um novo
-    
-    
-    return 0;
 }
 
 int send_(int socket, char* filename) {

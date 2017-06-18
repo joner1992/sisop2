@@ -228,6 +228,12 @@ void *auxSocketFunctions() {
       //Pasta de destino
       strcpy(dir, "./files/out/");
       receive_(aux_sockfd, dir);
+      
+      //AVISAR BIIICAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      struct stat file_stat = getAttributes(buffer);
+      char lastModified[36];
+      strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
+      addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &fileList);
 
     } else if(strcmp(cmd, "exit") == 0) {
       n = write(aux_sockfd, buffer, BUFFERSIZE);

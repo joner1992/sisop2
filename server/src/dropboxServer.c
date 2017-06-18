@@ -220,3 +220,49 @@ char *cropUserId(char *auxSocketName) {
   strtok_r(auxSocketName, "_", &subString);
   return subString;
 }
+
+
+void listFiles(PFILA2 clientList, char *userId) {
+  printf("LIST FILES");
+  ClientInfo *user;
+  if(searchForUserId(clientList, userId) == SUCCESS) {
+    user = (ClientInfo *) GetAtIteratorFila2(clientList);
+    char buffer[BUFFERSIZE];
+
+    bzero(buffer, BUFFERSIZE);
+    strcat(buffer, getFiles(buffer, &(user->filesList)));
+    printf("%s", buffer);
+  }
+}
+
+char *getFiles(char *buffer, PFILA2 fila) {
+
+  int first;
+  first = FirstFila2(fila);
+
+  if (first == LISTSUCCESS) {
+    void *fileFound;
+    UserFiles *fileWanted;
+    fileWanted = (UserFiles*) GetAtIteratorFila2(fila);
+    strcat(buffer, fileWanted->name);
+    strcat(buffer, "\n");
+    int iterator = 0;
+    while (iterator == 0) {
+      iterator = NextFila2(fila);
+      fileFound = GetAtIteratorFila2(fila);
+      if (fileFound == NULL) {
+          return buffer;
+      }
+      else {
+        fileWanted = (UserFiles*) fileFound;
+        strcat(buffer, fileWanted->name);
+        strcat(buffer, "\n");
+      }
+    }
+  }
+  else {
+    strcat(buffer, "Server has empty directory. \n");
+    return buffer;
+  }
+  return buffer;
+}
