@@ -117,7 +117,6 @@ void *syncClientThread(void* syncThread){
 void *auxClientThread(void* auxThread){
   int n;
   char buffer[BUFFERSIZE];
-  clientThread *newAuxThread = auxThread;
   char *forIterator;
   char *subString;
   char fileName[BUFFERSIZE];
@@ -125,6 +124,7 @@ void *auxClientThread(void* auxThread){
   char command[BUFFERSIZE];
   int numCommands;
   ClientInfo *user;
+  clientThread *newAuxThread = auxThread;
 
   pthread_mutex_lock(&clientListMutex);
     if(searchForUserId(&clientList, newAuxThread->userId) == SUCCESS) {
@@ -204,12 +204,10 @@ void *auxClientThread(void* auxThread){
 
     } else if(strcmp(command, "download") == 0) {
       pthread_mutex_lock(&(user->downloadUploadMutex));
-        printf("download");
         char path[255]= "./clientsDirectories/sync_dir_";
         sprintf(path,"%s%s/%s",path, newAuxThread->userId, fileName);        
         send_(newAuxThread->socketId, path);
       pthread_mutex_unlock(&(user->downloadUploadMutex));
-      printf("After mutex");
     } 
   }
 }

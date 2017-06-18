@@ -287,8 +287,7 @@ int receive_(int socket, char path[255]) { // Start function
 
 struct stat getAttributes(char* pathFile) {
   struct stat attributes;
-
-  if (stat(pathFile,&attributes)) {
+  if (stat(pathFile,&attributes) == -1) {
         perror("ERROR Get attributes from file");
         return;
   }
@@ -338,4 +337,19 @@ void getFilesFromUser(char* userId, PFILA2 filesList) {
       }
     }
   }
+}
+
+char *removeFileNameFromPath(char *path){
+    char fileName[BUFFERSIZE];
+    char command[BUFFERSIZE];
+    char *forIterator;
+    char *subString;
+
+    bzero(command, BUFFERSIZE);
+
+    for (forIterator = strtok_r(path,"/", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "/", &subString)){
+        strcpy(fileName, forIterator);
+    }
+
+    return fileName;
 }

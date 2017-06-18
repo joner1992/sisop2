@@ -169,34 +169,54 @@ void *syncSocket() {
 
 void *auxSocketFunctions() {
   char buffer[BUFFERSIZE];
-  char cmd[8] = "";
-  char dir[255];
-  char bufferExit[BUFFERSIZE];
+  char bufferForServer[BUFFERSIZE];
+  char fileName[BUFFERSIZE];
+  char completePath[BUFFERSIZE];
+  char command[BUFFERSIZE];
+  char *forIterator;
+  char *subString;
   char lastModified[36];
+  int numCommands;
 
   while(1) {
     bzero(buffer, BUFFERSIZE);
-    bzero(dir, 255);
-    bzero(cmd, 8);
+    bzero(command, BUFFERSIZE);
+    bzero(fileName, BUFFERSIZE);
+    bzero(bufferForServer, BUFFERSIZE);
+    bzero(completePath, BUFFERSIZE);
     bzero(lastModified, 36);
+    numCommands = 0;
+
     int i = 0;
 
     printf(">> ");
     fgets(buffer, BUFFERSIZE, stdin);
     strcpy(buffer, adaptEntry(buffer));
+    strcpy(bufferForServer, buffer);
+    // while (buffer[i]!='#' && i < 8) {
+    //     cmd[i] = buffer[i];
+    //     i++;
+    // }
 
-    while (buffer[i]!='#' && i < 8) {
-        cmd[i] = buffer[i];
-        i++;
-    }    
+    for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)){
+      if (numCommands == 0){
+			  strcpy(command, forIterator);
+		  }
+		  else if (numCommands == 1){
+			  strcpy(fileName, forIterator);
+		  }
+		  numCommands++;
+    }
 
-    printf("\n BUFFER: %s  / COMANDO %s \n", buffer, cmd);
+    printf("COMMAND: %s FILENAME: %s\n", command, fileName);
 
-    if(strcmp(cmd, "upload") == 0) {
+    strcpy(completePath, getUserDirectory(userId));
+
+    if(strcmp(command, "upload") == 0) {
       
       //UPLOAD BEGIN
       //Enviando o comando para o servidor
-      n = write(aux_sockfd, buffer, BUFFERSIZE); 
+      n = write(aux_sockfd, bufferForServer, BUFFERSIZE); 
       if (n == ERROR) {
         perror("ERROR writing to socket\n");
         exit(ERROR);
@@ -205,38 +225,45 @@ void *auxSocketFunctions() {
       //Recebendo o nome do arquivo
       bzero(buffer, BUFFERSIZE);
       n = read(aux_sockfd, buffer, BUFFERSIZE);
-        if (n == ERROR) {
+      if (n == ERROR) {
           perror("ERROR read from socket\n");
           exit(ERROR);
       }
-      
-      //Enviando o arquivo
+      /*
+        CONVERSAR SOBRE, O UPLOAD TA SUPONDO QUE O ARQUIVO SEMPRE VAI ESTAR LOCALMENTE NO CLIENT NAO?
+        PQ O BUFFER TA VINDO ./FILES/IN/NOMEDOARQUIVO.EXTENSAO
+      */
+      //path completo do arquivo no buffer
       send_(aux_sockfd, buffer);
 
-      struct stat file_stat = getAttributes(buffer);
+      /*
+        concatena o path para o getAttributes, aqui temos um problema no caso de ./files 
+        etc pq o getAttributes requer o endereço completo e não a referencia com ./
+      */
+      strcat(completePath, removeFileNameFromPath(fileName));
+
+      struct stat file_stat = getAttributes(completePath);
       strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
       addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &fileList);
 
-
-      //UPLOAD END
-    } else if (strcmp(cmd, "download") == 0) {
+    } else if (strcmp(command, "download") == 0) {
       //Enviando o comando para o servidor
-      n = write(aux_sockfd, buffer, BUFFERSIZE); 
+      n = write(aux_sockfd, bufferForServer, BUFFERSIZE); 
       if (n == ERROR) {
         perror("ERROR writing to socket\n");
         exit(ERROR);
       }
       //Pasta de destino
-      strcpy(dir, getUserDirectory(userId));
-      if(receive_(aux_sockfd, dir) == SUCCESS) {
-        struct stat file_stat = getAttributes(buffer);
+      //nesse caso completePath é realmente o caminho do arquivo
+      if(receive_(aux_sockfd, completePath) == SUCCESS) {
+        //aqui o completePath está sendo concatenado com o fileName
+        strcat(completePath, fileName);
+        struct stat file_stat = getAttributes(completePath);
         strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
         addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &fileList);
-      }
-      
-
-    } else if(strcmp(cmd, "exit") == 0) {
-      n = write(aux_sockfd, buffer, BUFFERSIZE);
+      }  
+    } else if(strcmp(command, "exit") == 0) {
+      n = write(aux_sockfd, bufferForServer, BUFFERSIZE);
       if (n == ERROR) {
         perror("ERROR writing to socket\n");
         exit(ERROR);
@@ -247,19 +274,19 @@ void *auxSocketFunctions() {
       close(aux_sockfd);
       pthread_exit(NULL);
     }
-    else if(strcmp(cmd, "list") == 0) {
-      n = write(aux_sockfd, buffer, BUFFERSIZE);
+    else if(strcmp(command, "list") == 0) {
+      n = write(aux_sockfd, bufferForServer, BUFFERSIZE);
       if (n == ERROR) {
         perror("ERROR writing to socket\n");
         exit(ERROR);
       }
+      
       bzero(buffer, BUFFERSIZE);
       n = read(aux_sockfd, buffer, BUFFERSIZE);
       if (n == ERROR) {
         perror("ERROR writing to socket\n");
         exit(ERROR);
       }
-      printf("%s", buffer);
     }
   }
 }
