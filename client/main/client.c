@@ -166,166 +166,163 @@ void *syncSocket() {
     }
 
     //recebe TEST para ver se a thread existe
-    // while(1) {
-    //   bzero(buffer, BUFFERSIZE);
-    //   n = read(sockfd, buffer, BUFFERSIZE);
-    //   if (n == ERROR) {
-    //     perror("ERROR reading from socket\n");
-    //     exit(ERROR);
-    //   } else if(n > 0){
-    //     break;
-    //   }      
-    // }
+    while(1) {
+      bzero(buffer, BUFFERSIZE);
+      n = read(sockfd, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR reading from socket\n");
+        exit(ERROR);
+      } else if(n > 0){
+        break;
+      }      
+    }
 
-    // printf("COMEÇOU SYNC\n");
+    printf("COMEÇOU SYNC\n");
 
-    // bzero(buffer, BUFFERSIZE);
-    // strcpy(buffer, getListFilesFromUser(buffer, &fileList, CLIENT));
+    bzero(buffer, BUFFERSIZE);
+    strcpy(buffer, getListFilesFromUser(buffer, &fileList, CLIENT));
 
-    // numCommands = 1;
-    // for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
-    //   if(numCommands %2 != 0){
-    //     //limpa lista atual de arquivos
-    //     cleanList(&fileList, forIterator);
-    //   }
-    //   numCommands++;
-    // }
+    numCommands = 1;
+    for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
+      if(numCommands %2 != 0){
+        //limpa lista atual de arquivos
+        cleanList(&fileList, forIterator);
+      }
+      numCommands++;
+    }
 
-    // printf("LIMPOU LISTA\n");
+    printf("LIMPOU LISTA\n");
       
     
-    // //adiciona novos arquivos
-    // getFilesFromUser(userId, &fileList, CLIENT);
-    // printf("ADICIONOU ARQUIVOS NA LISTA\n");
+    //adiciona novos arquivos
+    getFilesFromUser(userId, &fileList, CLIENT);
+    printf("ADICIONOU ARQUIVOS NA LISTA\n");
 
-    // //envia requisição de data
-    // bzero(buffer, BUFFERSIZE);
-    // strcpy(buffer, "sendFileListDate");
-    // n = write(sockfd, buffer, BUFFERSIZE);
-    // if (n == ERROR) {
-    //   perror("ERROR reading from socket\n");
-    //   exit(ERROR);
-    // }
+    //envia requisição de data
+    bzero(buffer, BUFFERSIZE);
+    strcpy(buffer, "sendFileListDate");
+    n = write(sockfd, buffer, BUFFERSIZE);
+    if (n == ERROR) {
+      perror("ERROR reading from socket\n");
+      exit(ERROR);
+    }
 
-    // //recebe a data do servidor
-    // while(1) {
-    //   bzero(buffer, BUFFERSIZE);
-    //   n = read(sockfd, buffer, BUFFERSIZE);
-    //   if (n == ERROR) {
-    //     perror("ERROR reading from socket\n");
-    //     exit(ERROR);
-    //   } else if(n > 0){
-    //     break;
-    //   }      
-    // }
+    //recebe a data do servidor
+    while(1) {
+      bzero(buffer, BUFFERSIZE);
+      n = read(sockfd, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR reading from socket\n");
+        exit(ERROR);
+      } else if(n > 0){
+        break;
+      }      
+    }
 
-    // printf("RECEBEU A DATA: %s\n", buffer);
+    printf("RECEBEU A DATA: %s\n", buffer);
 
-    // if(lastModification > buffer) {
-    //   bzero(buffer, BUFFERSIZE);
-    //   strcpy(buffer, "Client#");
-    //   strcat(buffer, ctime(&lastModification));
-    //   n = write(sockfd, buffer, BUFFERSIZE);
-    //   if (n == ERROR) {
-    //     perror("ERROR reading from socket\n");
-    //     exit(ERROR);
-    //   }
+    if(lastModification > buffer) {
+      bzero(buffer, BUFFERSIZE);
+      strcpy(buffer, "Client#");
+      strcat(buffer, ctime(&lastModification));
+      n = write(sockfd, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR reading from socket\n");
+        exit(ERROR);
+      }
 
-    // } else {
-    //   lastModification = buffer;
+    } else {
+      lastModification = time(&buffer);
+      printf("SETOU DATA DO CLIENT COMO: %s\n", ctime(&lastModification));
+      bzero(buffer, BUFFERSIZE);
+      strcpy(buffer, "Server#");
+      n = write(sockfd, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR reading from socket\n");
+        exit(ERROR);
+      }
+    }
 
-    //   bzero(buffer, BUFFERSIZE);
-    //   strcpy(buffer, "Server#");
-    //   n = write(sockfd, buffer, BUFFERSIZE);
-    //   if (n == ERROR) {
-    //     perror("ERROR reading from socket\n");
-    //     exit(ERROR);
-    //   }
-    // }
+    printf("SYNC: %s\n", buffer);
 
-    // printf("SYNC: %s\n", buffer);
+    //envia lista para server
+    bzero(buffer, BUFFERSIZE);
+    strcpy(buffer, getListFilesFromUser(buffer, &fileList, CLIENT));
+    n = write(sockfd, buffer, BUFFERSIZE);
+    if (n == ERROR) {
+      perror("ERROR reading from socket\n");
+      exit(ERROR);
+    }
 
-    // //envia lista para server
-    // bzero(buffer, BUFFERSIZE);
-    // strcpy(buffer, getListFilesFromUser(buffer, &fileList, CLIENT));
-    // n = write(sockfd, buffer, BUFFERSIZE);
-    // if (n == ERROR) {
-    //   perror("ERROR reading from socket\n");
-    //   exit(ERROR);
-    // }
+    printf("ENVIA LISTA PARA SERVER: %s\n", buffer);
 
-    // printf("ENVIA LISTA PARA SERVER: %s\n", buffer);
+    //le operacao#nomearquivo#operacao#nomearquivo#operacao#nomearquivo#operacao#nomearquivo#
+    while(1){
+      bzero(buffer, BUFFERSIZE);
+      n = read(sockfd, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR reading from socket\n");
+        exit(ERROR);
+      } else if(n > 0){
+        //recebeu a data no buffer
+        break;
+      }
+    }
 
-    // //le operacao#nomearquivo#operacao#nomearquivo#operacao#nomearquivo#operacao#nomearquivo#
-    // while(1){
-    //   bzero(buffer, BUFFERSIZE);
-    //   n = read(sockfd, buffer, BUFFERSIZE);
-    //   if (n == ERROR) {
-    //     perror("ERROR reading from socket\n");
-    //     exit(ERROR);
-    //   } else if(n > 0){
-    //     //recebeu a data no buffer
-    //     break;
-    //   }
-    // }
+    printf("RECEBEU OPERACAO#ARQUIVO: %s\n", buffer);
 
-    // printf("RECEBEU OPERACAO#ARQUIVO: %s\n", buffer);
+    numCommands = 1;
+    for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
+      if (numCommands % 2 != 0) { //impar
+        bzero(operation, BUFFERSIZE);
+			  strcpy(operation, forIterator);
+        printf("OPERATION: %s\n", operation);
+		  }
+		  else if (numCommands % 2 == 0) { //par
+        bzero(fileName, BUFFERSIZE);
+			  strcpy(fileName, forIterator);
+        printf("FILENAME: %s\n", fileName);
 
-    // numCommands = 1;
-    // for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
-    //   if (numCommands % 2 != 0) { //impar
-    //     bzero(operation, BUFFERSIZE);
-		// 	  strcpy(operation, forIterator);
-    //     printf("OPERATION: %s\n", operation);
-		//   }
-		//   else if (numCommands % 2 == 0) { //par
-    //     bzero(fileName, BUFFERSIZE);
-		// 	  strcpy(fileName, forIterator);
-    //     printf("FILENAME: %s\n", fileName);
+        //EXECUTA OPERAÇÃO RECEBIDA EM RELAÇÃO AO SERVER
+        if(strcmp(operation, "delete") == 0){
+          bzero(completePath, BUFFERSIZE);
+          strcat(completePath, getUserDirectory(userId));
+          strcat(completePath, fileName);
 
-    //     //EXECUTA OPERAÇÃO RECEBIDA EM RELAÇÃO AO SERVER
-    //     if(strcmp(operation, "delete") == 0){
-    //       bzero(completePath, BUFFERSIZE);
-    //       strcat(completePath, getUserDirectory(userId));
-    //       strcat(completePath, fileName);
+          removeFileFromSystem(completePath);
+          removeFileFromUser(fileName, &fileList, userId, CLIENT);
+        } else if(strcmp(operation, "download") == 0) {
+          printf("DOWNLOAD (getUserDirectory): %s\n", getUserDirectory(userId));
+          receive_(sockfd, getUserDirectory(userId));
+          printf("RECEBEU: %s\n", fileName);
 
-    //       removeFileFromSystem(completePath);
-    //       removeFileFromUser(fileName, &fileList, userId, CLIENT);
-    //     } else if(strcmp(operation, "download") == 0) {
-    //       printf("DOWNLOAD (getUserDirectory): %s\n", getUserDirectory(userId));
-    //       receive_(sockfd, getUserDirectory(userId));
-    //       printf("RECEBEU: %s\n", fileName);
+          bzero(completePath, BUFFERSIZE);
+          strcat(completePath, getUserDirectory(userId));
+          strcat(completePath, fileName);
 
-    //       bzero(completePath, BUFFERSIZE);
-    //       strcat(completePath, getUserDirectory(userId));
-    //       strcat(completePath, fileName);
+          printf("ENVIANDO COMPLETEPATH PARA GETATTRIBUTES: %s\n", completePath);
 
-    //       printf("ENVIANDO COMPLETEPATH PARA GETATTRIBUTES: %s\n", completePath);
+          struct stat file_stat = getAttributes(completePath);
+          bzero(lastModified, BUFFERSIZE);
+          strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
+          printf("TERMINOU GETATTRIBUTES(lastModified): %s\n", lastModified);
+          printf("TERMINOU GETATTRIBUTES(FILESTAT STSIZE): %d\n", file_stat.st_size);
 
-    //       struct stat file_stat = getAttributes(completePath);
-    //       bzero(lastModified, BUFFERSIZE);
-    //       strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
-    //       printf("TERMINOU GETATTRIBUTES(lastModified): %s\n", lastModified);
-    //       printf("TERMINOU GETATTRIBUTES(FILESTAT STSIZE): %d\n", file_stat.st_size);
+          addFileToUser(fileName, ".txt", lastModified, file_stat.st_size, &fileList);
 
-    //       addFileToUser(fileName, ".txt", lastModified, file_stat.st_size, &fileList);
+          printf("ADDFILES DONE: %s\n", lastModified);
 
-    //       printf("ADDFILES DONE: %s\n", lastModified);
-
-    //     } else if(strcmp(operation, "upload") == 0) {
-    //       bzero(completePath, BUFFERSIZE);
-    //       strcat(completePath, getUserDirectory(userId));
-    //       strcat(completePath, fileName);
-    //       printf("UPLOAD (COMPLETEPATH): %s\n", completePath);
-    //       send_(sockfd, completePath);
-    //     }
-
-    //     bzero(operation, BUFFERSIZE);
-    //     bzero(fileName, BUFFERSIZE);
-		//   }
-		//   numCommands++;
-    // }
-    // sleep(10);    
+        } else if(strcmp(operation, "upload") == 0) {
+          bzero(completePath, BUFFERSIZE);
+          strcat(completePath, getUserDirectory(userId));
+          strcat(completePath, fileName);
+          printf("UPLOAD (COMPLETEPATH): %s\n", completePath);
+          send_(sockfd, completePath);
+        }
+		  }
+		  numCommands++;
+    }
+    sleep(10);    
   }
 }
 

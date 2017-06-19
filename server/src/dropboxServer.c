@@ -128,7 +128,7 @@ void syncClientServer(int isServer, int socketId, char *userId, PFILA2 fileList)
         if(strcmp(operation, "download") == 0){
           bzero(bufferPath, BUFFERSIZE);
           sprintf(bufferPath, "%s%s", path, nameOfFile);
-          printf("ENVIOU ARQUIVO(PATH): %s\n", bufferPath);
+          printf("ENVIOU ARQUIVO(PATH): %s#%s\n", bufferPath, path);
           send_(socketId, bufferPath);
         } else if(strcmp(operation, "upload") == 0){
           printf("RECEBEU ARQUIVO(PATH): %s\n", path);

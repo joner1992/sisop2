@@ -101,56 +101,57 @@ void *syncClientThread(void* syncThread){
       pthread_exit(NULL);
     }
 
-    // printf("ENVIOU TEST\n");
+    printf("ENVIOU TEST\n");
 
-    // //recebe o request de data do client
-    // while(1) {
-    //   bzero(buffer, BUFFERSIZE);
-    //   n = read(newSyncThread->socketId, buffer, BUFFERSIZE);
-    //   if (n == ERROR) {
-    //     perror("ERROR reading from socket\n");
-    //     exit(ERROR);
-    //   } else if(strcmp(buffer, "sendFileListDate") == 0){
-    //     //recebeu a data no buffer
-    //     break;
-    //   }      
-    // }
+    //recebe o request de data do client
+    while(1) {
+      bzero(buffer, BUFFERSIZE);
+      n = read(newSyncThread->socketId, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR reading from socket\n");
+        exit(ERROR);
+      } else if(strcmp(buffer, "sendFileListDate") == 0){
+        //recebeu a data no buffer
+        break;
+      }      
+    }
 
-    // printf("RECEBEU DATA DO CLIENT: %s\n", buffer);
+    printf("RECEBEU DATA DO CLIENT: %s\n", buffer);
 
-    // //envia a data do server para o client
-    // bzero(buffer, BUFFERSIZE);
-    // strcat(buffer, ctime(&user->lastModification));
-    // n = write(newSyncThread->socketId, buffer, BUFFERSIZE);
-    // if (n == ERROR) {
-    //   perror("ERROR reading from socket\n");
-    //   exit(ERROR);
-    // }
+    //envia a data do server para o client
+    bzero(buffer, BUFFERSIZE);
+    strcat(buffer, ctime(&user->lastModification));
+    n = write(newSyncThread->socketId, buffer, BUFFERSIZE);
+    if (n == ERROR) {
+      perror("ERROR reading from socket\n");
+      exit(ERROR);
+    }
 
-    // printf("ENVIOU DATA PARA O CLIENT: %s\n", buffer);
+    printf("ENVIOU DATA PARA O CLIENT: %s\n", buffer);
 
-    // //recebe syncClient#data ou syncServer
-    // while(1) {
-    //   bzero(buffer, BUFFERSIZE);
-    //   n = read(newSyncThread->socketId, buffer, BUFFERSIZE);
-    //   if (n == ERROR) {
-    //     perror("ERROR reading from socket\n");
-    //     exit(ERROR);
-    //   } else if(n > 0){
-    //     //recebeu a data no buffer
-    //     break;
-    //   }      
-    // }
+    //recebe syncClient#data ou syncServer
+    while(1) {
+      bzero(buffer, BUFFERSIZE);
+      n = read(newSyncThread->socketId, buffer, BUFFERSIZE);
+      if (n == ERROR) {
+        perror("ERROR reading from socket\n");
+        exit(ERROR);
+      } else if(n > 0){
+        //recebeu a data no buffer
+        break;
+      }      
+    }
 
-    // printf("RECEBEU SYNC: %s\n", buffer);
+    printf("RECEBEU SYNC: %s\n", buffer);
+    printf("REMOVEFILENAMEFROMPATH? %s\n", removeFileNameFromPath(buffer, "#"));
 
-    // if(buffer[0] == 'C') {
-    //   user->lastModification = removeFileNameFromPath(buffer, "#");
-    //   syncClientServer(CLIENT, newSyncThread->socketId, newSyncThread->userId, &(user->filesList));
-    // }
-    // else if(buffer[0] == 'S') {
-    //   syncClientServer(SERVER, newSyncThread->socketId, newSyncThread->userId, &(user->filesList));
-    // }
+    if(buffer[0] == 'C') {
+      user->lastModification = time(removeFileNameFromPath(buffer, "#"));
+      syncClientServer(CLIENT, newSyncThread->socketId, newSyncThread->userId, &(user->filesList));
+    }
+    else if(buffer[0] == 'S') {
+      syncClientServer(SERVER, newSyncThread->socketId, newSyncThread->userId, &(user->filesList));
+    }
 
   }
 }
@@ -232,6 +233,7 @@ void *auxClientThread(void* auxThread){
         pthread_mutex_lock(&clientListMutex);       
           struct stat file_stat = getAttributes(path);
           char lastModified[36];
+          bzero(lastModified, 36);
           strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
           pthread_mutex_lock(&user->fileListMutex);
             addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &(user->filesList));
