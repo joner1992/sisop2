@@ -1,6 +1,6 @@
 #include "../include/dropboxUtils.h"
 int BUFFER_TRANSFER = 32 * 1024;
-int DEBUG = 0;
+int DEBUG = 1;
 
 void createDirectory(char *argv, int server) {
     
@@ -47,6 +47,8 @@ void initializeList(PFILA2 list){
     exit(ERROR);
   }
 }
+
+
 
 int searchForFile(char *fileName, PFILA2 fileList) {
   int first;
@@ -108,18 +110,18 @@ int addFileToUser(char *name, char *extension, char *lastModified, int size, PFI
     return ERROR;
 }
 
-int removeFileFromUser(char *fileName, PFILA2 fileList){
+int removeFileFromUser(char *fileName, PFILA2 fileList, char *userId, int isServer){
     //fazer remoção do filename do user
     if(searchForFile(fileName, fileList) == SUCCESS) {
         if(DeleteAtIteratorFila2(fileList) == LISTSUCCESS) {
-            printf("FILE %s removed successfully from list", fileName);
+            printf("FILE %s removed successfully from list\n", fileName);
             return SUCCESS;
         }
         else {
-            printf("FILE couldn't be deleted from list");
+            printf("FILE couldn't be deleted from list\n");
         }
     }
-    printf("FILE not found in list");
+    printf("FILE not found in list\n");
     return ERROR;
 }
 
@@ -131,7 +133,7 @@ int send_(int socket, char* filename) {
    FILE *file = fopen(filename, "rb");
 
    if(file == NULL) {
-        printf("Error - File not found or can't open"); 
+        printf("Error - File not found or can't open\n"); 
         return -1;
    } 
     
@@ -200,7 +202,7 @@ int receive_(int socket, char path[255]) { // Start function
     stat = read(socket, filename, sizeof(filename));
   } while(stat<0);
   
-  if(DEBUG)  printf("Receiveing %s", filename);
+  if(DEBUG)  printf("Receiveing %s\n", filename);
   
   //Find the size of the file
   do {
@@ -343,15 +345,14 @@ void getFilesFromUser(char* userId, PFILA2 filesList, int server) {
   }
 }
 
-char *removeFileNameFromPath(char *path){
+char *removeFileNameFromPath(char *path, char *stopCharacter){
     char fileName[BUFFERSIZE];
-    char command[BUFFERSIZE];
     char *forIterator;
     char *subString;
 
-    bzero(command, BUFFERSIZE);
+    bzero(fileName, BUFFERSIZE);
 
-    for (forIterator = strtok_r(path,"/", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "/", &subString)){
+    for (forIterator = strtok_r(path,stopCharacter, &subString); forIterator != NULL; forIterator = strtok_r(NULL, stopCharacter, &subString)){
         strcpy(fileName, forIterator);
     }
 
@@ -380,3 +381,91 @@ char *receiveMessage (int socket, char *conditionToStop, int printing) {
     }
     return buffer;
 }
+
+int cleanList(PFILA2 fileList, char *name) {
+
+  int first;
+  first = FirstFila2(fileList);
+
+  UserFiles *currentFile;
+  if (first == LISTSUCCESS) {
+    currentFile = (UserFiles*) GetAtIteratorFila2(fileList);
+    if(strcmp(currentFile->name, name) == 0){
+        DeleteAtIteratorFila2(fileList);
+        return SUCCESS;
+    } else {
+      int iterator = 0;
+      while (iterator == 0) {
+        iterator = NextFila2(fileList);
+        currentFile = (UserFiles*) GetAtIteratorFila2(fileList);
+        if (currentFile == NULL) {
+            return SUCCESS;
+        }
+        else {
+            if(strcmp(currentFile->name, name) == 0){
+                DeleteAtIteratorFila2(fileList);
+                return SUCCESS;
+            }
+        }
+      }
+      return SUCCESS;
+    }
+  } else {
+     return ERROR;
+  }
+}
+
+char *getListFilesFromUser(char *buffer, PFILA2 fila, int isServer) {
+  bzero(buffer, BUFFERSIZE);
+  int n;
+  int first;
+  first = FirstFila2(fila);
+  
+  if (first == LISTSUCCESS) {
+    void *fileFound;
+    UserFiles *fileWanted;
+    fileWanted = (UserFiles*) GetAtIteratorFila2(fila);
+    
+    strcat(buffer, fileWanted->name);
+    strcat(buffer, "#");    
+    strcat(buffer, fileWanted->last_modified);
+    strcat(buffer, "#");
+
+    int iterator = 0;
+    while (iterator == 0) {
+      iterator = NextFila2(fila);
+      fileFound = GetAtIteratorFila2(fila);
+      if (fileFound == NULL) {
+          return buffer;
+      }
+      else {
+        fileWanted = (UserFiles*) fileFound;
+        strcat(buffer, fileWanted->name);
+        strcat(buffer, "#");
+        strcat(buffer, fileWanted->last_modified);
+        strcat(buffer, "#");
+      }
+    }
+  }
+  else {
+    strcat(buffer, "#");
+    return buffer;
+  }
+  return buffer;
+}
+
+int removeFileFromSystem(char *path) {
+    if(remove(path) == 0){
+        return SUCCESS;
+    }
+    return ERROR;
+}
+
+void sync_client(int socketId, PFILA2 fileList) {
+    //
+}
+
+void sync_server(int socketId, PFILA2 fileList) {
+    //
+}
+

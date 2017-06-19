@@ -1,12 +1,279 @@
 #include "../../utils/include/dropboxUtils.h"
 #include "../include/dropboxServer.h"
 
-void sync_server() {
-  printf("FUNFOU LINKAGEM");
+void syncClientServer(int isServer, int socketId, char *userId, PFILA2 fileList) {
+  char nameOfFile[BUFFERSIZE];
+  char dateOfFile[BUFFERSIZE];
+  char buffer[BUFFERSIZE];
+  char bufferPath[BUFFERSIZE];
+  char operationFilename[BUFFERSIZE];
+  char operation[BUFFERSIZE];
+  char serverFileList[BUFFERSIZE];
+  char path[BUFFERSIZE];
+  char clientLocalFileList[BUFFERSIZE];
+  char file[BUFFERSIZE];
+  char *forIterator;
+  char *subString;
+  int n;
+  int numCommands;
+
+  //lê pares de arquivo e data de modificação
+  while(1){
+    bzero(buffer, BUFFERSIZE);
+    n = read(socketId, buffer, BUFFERSIZE);
+    if (n == ERROR) {
+      perror("ERROR reading from socket\n");
+      exit(ERROR);
+    } else if(n > 0){
+      //recebeu a data no buffer
+      break;
+    }
+  }
+
+  printf("LEU PARES DE ARQUIVO E DATA DO CLIENT: %s\n", buffer);
+
+  bzero(operationFilename, BUFFERSIZE);
+  bzero(clientLocalFileList, BUFFERSIZE);
+  strcat(clientLocalFileList, "#");
+
+  numCommands = 1;
+  for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
+      if (numCommands % 2 != 0) { //impar
+        bzero(nameOfFile, BUFFERSIZE);
+			  strcpy(nameOfFile, forIterator);
+		  }
+		  else if (numCommands % 2 == 0) { //par
+        bzero(dateOfFile, BUFFERSIZE);
+			  strcpy(dateOfFile, forIterator);
+        strcat(clientLocalFileList, nameOfFile);
+        strcat(clientLocalFileList, "#");
+
+        //compara se o arquivo do server é mais novo, se for, download no cliente
+        //compara se o arquivo do server é mais antigo, se for, upload no client
+        strcat(operationFilename, compareDatesFromFileList(fileList, nameOfFile, dateOfFile, isServer));                        
+      }
+      numCommands++;
+  }
+  printf("PRIMEIRO OPERATION FILE NAME (UPDATE): %s\n", operationFilename);
+
+  bzero(serverFileList, BUFFERSIZE);
+  strcpy(serverFileList, getServerFileNames(fileList));
+
+  //compara se o arquivo que está no server, existe, se não existe, deleta no cliente
+  //compara se o arquivo do server não existe no client, se não existe, download no client
+  //se existir no servidor e não no cliente, deleta no servidor
+  //se nao existir no servidor e existir no client, upload do client
+  bzero(buffer, BUFFERSIZE);
+  strcpy(buffer, clientLocalFileList);
+  //compara a lista do server com cada arquivo do client
+  for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
+    bzero(file, BUFFERSIZE);
+    sprintf(file,"#%s#",forIterator);
+    if(strstr(serverFileList, file)==NULL) {
+      if(isServer) {
+        sprintf(operationFilename, "%s%s#%s#", operationFilename, "delete", forIterator);
+      } else {
+        sprintf(operationFilename, "%s%s#%s#", operationFilename, "upload", forIterator);
+      }
+    } 
+  }
+
+  printf("SEGUNDO OPERATION FILE NAME (LISTA COM DELETE E UPLOAD): %s\n", operationFilename);
+
+  bzero(buffer, BUFFERSIZE);
+  bzero(file, BUFFERSIZE);
+  bzero(path, BUFFERSIZE);
+  strcpy(buffer, serverFileList);
+  //compara a lista do client com cada arquivo do server
+  strcpy(path, "./clientsDirectories/sync_dir_");
+  sprintf(path,"%s%s/",path, userId);
+
+  for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
+    bzero(file, BUFFERSIZE);
+    sprintf(file,"#%s#",forIterator);
+    if(strstr(clientLocalFileList, file)==NULL) {
+      if(isServer) {
+        sprintf(operationFilename, "%s%s#%s#", operationFilename, "download", forIterator);
+      } else {
+        removeFileFromSystem(path);
+        removeFileFromUser(forIterator, fileList, userId, SERVER);
+      }
+    } 
+  }
+
+  printf("TERCEIRO OPERATION FILE NAME (LISTA COM DOWNLOAD): %s\n", operationFilename);
+
+  //envia pares de operacao#arquivo
+  bzero(buffer, BUFFERSIZE);
+  strcat(buffer, operationFilename);
+  n = write(socketId, buffer, BUFFERSIZE);
+  if (n == ERROR) {
+    perror("ERROR reading from socket\n");
+    exit(ERROR);
+  }
+
+  printf("ENVIOU PARES OPERACAO#ARQUIVO PARA O CLIENT: %s\n", buffer);
+
+  numCommands = 1;
+  for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
+      if (numCommands % 2 != 0) { //impar
+        bzero(operation, BUFFERSIZE);
+			  strcpy(operation, forIterator);
+		  }
+		  else if (numCommands % 2 == 0) { //par
+        bzero(nameOfFile, BUFFERSIZE);
+			  strcpy(nameOfFile, forIterator);
+        
+        //executa recebimento ou envio
+        if(strcmp(operation, "download") == 0){
+          bzero(bufferPath, BUFFERSIZE);
+          sprintf(bufferPath, "%s%s", path, nameOfFile);
+          printf("ENVIOU ARQUIVO(PATH): %s\n", bufferPath);
+          send_(socketId, bufferPath);
+        } else if(strcmp(operation, "upload") == 0){
+          printf("RECEBEU ARQUIVO(PATH): %s\n", path);
+          receive_(socketId, path);
+        }
+
+      }
+      numCommands++;
+  }
+
   return;
 }
 
-/* UTILITARY FUNCTIONS FOR SERVER */
+char *getServerFileNames(PFILA2 fileList) {
+  char concatFileNames[BUFFERSIZE];
+  int n;
+  int first;
+  first = FirstFila2(fileList);
+  bzero(concatFileNames, BUFFERSIZE);
+  strcpy(concatFileNames, "#");
+  
+  if (first == LISTSUCCESS) {
+    void *fileFound;
+    UserFiles *fileWanted;
+    fileWanted = (UserFiles*) GetAtIteratorFila2(fileList);
+    strcat(concatFileNames, fileWanted->name);
+    strcat(concatFileNames, "#");    
+
+    int iterator = 0;
+    while (iterator == 0) {
+      iterator = NextFila2(fileList);
+      fileFound = GetAtIteratorFila2(fileList);
+      if (fileFound == NULL) {
+          return concatFileNames;
+      }
+      else {
+        fileWanted = (UserFiles*) fileFound;
+        strcat(concatFileNames, fileWanted->name);
+        strcat(concatFileNames, "#");
+      }
+    }
+  }
+  else {
+    strcat(concatFileNames, "#");
+    return concatFileNames;
+  }
+  return concatFileNames;
+}
+
+
+char *compareDatesFromFileList(PFILA2 fileList, char *fileName, char *dateOfFile, int isServer) {
+  char buffer[BUFFERSIZE];
+  int n;
+  int first;
+  bzero(buffer, BUFFERSIZE);
+
+  first = FirstFila2(fileList);
+  
+  if (first == LISTSUCCESS) {
+    void *fileFound;
+    UserFiles *fileWanted;
+    fileWanted = (UserFiles*) GetAtIteratorFila2(fileList);
+
+    if(strcmp(fileName, fileWanted->name) == 0){
+      //data do client é mais antiga que a data do server
+      if(strcmp(dateOfFile, fileWanted->last_modified) < 0){
+        if(isServer){
+          //operacao
+          strcat(buffer, "download");
+          strcat(buffer, "#");
+          strcat(buffer, fileName);
+          strcat(buffer, "#");
+        } else {
+          strcat(buffer, "upload");
+          strcat(buffer, "#");
+          strcat(buffer, fileName);
+          strcat(buffer, "#");
+        }
+        //data do client é mais nova que a data do server
+      } else if(strcmp(dateOfFile, fileWanted->last_modified) > 0) {
+        if(isServer){
+          //operacao
+          strcat(buffer, "upload");
+          strcat(buffer, "#");
+          strcat(buffer, fileName);
+          strcat(buffer, "#");
+        } else {
+          strcat(buffer, "download");
+          strcat(buffer, "#");
+          strcat(buffer, fileName);
+          strcat(buffer, "#");
+        }
+      }
+    }
+
+    int iterator = 0;
+    while (iterator == 0) {
+      iterator = NextFila2(fileList);
+      fileFound = GetAtIteratorFila2(fileList);
+      if (fileFound == NULL) {
+          return buffer;
+      }
+      else {
+        fileWanted = (UserFiles*) fileFound;
+        if(strcmp(fileName, fileWanted->name) == 0){
+          //data do client é mais antiga que a data do server
+          if(strcmp(dateOfFile, fileWanted->last_modified) < 0){
+            if(isServer){
+              //operacao
+              strcat(buffer, "download");
+              strcat(buffer, "#");
+              strcat(buffer, fileName);
+              strcat(buffer, "#");
+            } else {
+              strcat(buffer, "upload");
+              strcat(buffer, "#");
+              strcat(buffer, fileName);
+              strcat(buffer, "#");
+            }
+            //data do client é mais nova que a data do server
+          } else if(strcmp(dateOfFile, fileWanted->last_modified) > 0) {
+            if(isServer){
+              //operacao
+              strcat(buffer, "upload");
+              strcat(buffer, "#");
+              strcat(buffer, fileName);
+              strcat(buffer, "#");
+            } else {
+              strcat(buffer, "download");
+              strcat(buffer, "#");
+              strcat(buffer, fileName);
+              strcat(buffer, "#");
+            }
+          }
+        }
+      }
+    }
+  }
+  else {
+    strcat(buffer, "#");
+    return buffer;
+  }
+  return buffer;
+}
+
 int validateServerArguments(int argc, char *argv[]) {
   int exit = ERROR;
   if(argc == 3)
@@ -33,7 +300,6 @@ int validateServerArguments(int argc, char *argv[]) {
 	}
 		return exit;
 }
-
 
 int searchForUserId(PFILA2 fila, char *userId) {
   int first;

@@ -2,27 +2,6 @@
 #include "../include/dropboxClient.h"
 
 
-int connect_server(char *host, int port) {
-  return 0;
-}
-
-void sync_client(){
-  return;
-}
-
-void send_file(char *file) {
-  return;
-}
-
-void get_file(char *file){
-  return;
-}
-
-void close_connection(){
-  return;
-}
-
-
 /* UTILITARY FUNCTIONS FOR CLIENT */
 int validateClientArguments(int argc, char *argv[]){
   int exit = ERROR;
@@ -56,4 +35,10 @@ int validateClientArguments(int argc, char *argv[]){
   		printf("Invalid arguments. For more information client --help\n\n");
 	}
 		return exit;
+}
+
+void syncClient(int normalFlow){
+  if(normalFlow == 0){
+
+  }
 }

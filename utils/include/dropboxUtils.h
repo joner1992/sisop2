@@ -19,8 +19,8 @@
 #define LISTSUCCESS 0
 #define ERROR -1
 #define MAXNAME 40
-#define MAXFILES 100
-#define BUFFERSIZE 1024
+#define MAXFILES 50
+#define BUFFERSIZE 4096
 #define DEFAULTPORT 12001
 #define DISCONNECTED "BYE!"
 #define SERVER 1
@@ -43,6 +43,7 @@ typedef struct client	{
  char userId[MAXNAME]; // id do usuario no servidor, que devera ser unico. Informado pela linha de comando
  FILA2 filesList; //metadados de cada arquivo que o cliente possui no servidor
  int logged_in; // cliente esta logado ou nao
+ time_t lastModification;
  pthread_mutex_t downloadUploadMutex;
  pthread_mutex_t fileListMutex;
 } ClientInfo;
@@ -57,11 +58,11 @@ char* getUserDirectory(char *userId);
 void initializeList(PFILA2 list);
 int searchForFile(char *fileName, PFILA2 fileList);
 int addFileToUser(char *name, char *extension, char *lastModified, int size, PFILA2 fileList);
-int removeFileFromUser(char *fileName, PFILA2 fileList);
+int removeFileFromUser(char *fileName, PFILA2 fileList, char *userId, int isServer);
 int send_(int socket, char *filename);
 int receive_(int socket, char path[255]);
 struct stat getAttributes(char* pathFile);
-void getFilesFromUser(char* userId, PFILA2 filesList, int isServer);
+void getFilesFromUser(char* userId, PFILA2 filesList, int server);
 int isRegularFile(struct dirent *file);
 /*
     se o printing for
@@ -71,3 +72,5 @@ int isRegularFile(struct dirent *file);
 
 */
 char *receiveMessage (int socket, char *conditionToStop, int printing);
+int cleanList(PFILA2 fileList, char *fileName);
+char *getListFilesFromUser(char *buffer, PFILA2 fila, int isServer);

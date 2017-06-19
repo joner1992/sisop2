@@ -11,7 +11,7 @@ pthread_mutex_t syncSocketsListMutex;
 
 /*  Sincroniza o servidor com o diretorio 
     “sync_dir_<nomeusuario>” com o cliente*/
-void sync_server();
+void syncClientServer(int isServer, int socketId, char *userId, PFILA2 fileList);
 
 /*  Recebe um arquivo file do cliente.
     Deverá ser executada quando for realizar upload de um arquivo.
@@ -42,6 +42,10 @@ char *cropUserId(char *auxSocketName);
 void disconnectClientFromServer(int socket, char *userId, PFILA2 auxSocketsList, PFILA2 syncSocketList, int isAux);
 void disconnectClient(int newsockfd);
 
+
 char *listFiles(PFILA2 clientList, char *userId, int socket);
 char *getFiles(char *buffer, PFILA2 fila, int socket);
 void sendMessage (int socket, char *buffer);
+
+char *getServerFileNames(PFILA2 fileList);
+char *compareDatesFromFileList(PFILA2 fileList, char *fileName, char *dateOfFile, int isServer);

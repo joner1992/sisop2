@@ -36,13 +36,11 @@ int verifyUserAuthentication(char *buffer, int newsockfd) {
     firstTimeUser->numDevices = 1;
     firstTimeUser->logged_in = 1;
     initializeList(&(firstTimeUser->filesList));
-    /*
-      Talvez passar o mutex pra função getFiles pq mexe com fileList?
-    */
+    //setando hora local
+    firstTimeUser->lastModification = time(NULL);
     getFilesFromUser(firstTimeUser->userId, &(firstTimeUser->filesList), SERVER);
     AppendFila2(&clientList, (void *) firstTimeUser);   
     createDirectory(buffer, SERVER);
-    
     return SUCCESS;
   }  
 }
@@ -80,24 +78,19 @@ void bindServerSocket() {
 
 void *syncClientThread(void* syncThread){
   int n;
+  int isSyncServer;
   char buffer[BUFFERSIZE];
   clientThread *newSyncThread = syncThread;
+  ClientInfo *user;
 
   pthread_mutex_lock(&clientListMutex);
     if(searchForUserId(&clientList, newSyncThread->userId) == SUCCESS) {
-      ClientInfo *user;
       user = (ClientInfo *) GetAtIteratorFila2(&clientList);
     }
   pthread_mutex_unlock(&clientListMutex);
 
-  //colocar o código do sync aqui
   while(1){
-    sleep(3);
-    /* 
-      É IMPORTANTE DAR UM WRITE DE LIXO OU QUALQUER COISA PRA VERIFICAR SE O SOCKET 
-      TA ATIVO ANTES DE COMEÇAR E CASO O CLIENT INTERROMPA NO MEIO, NO PROXIMO WRITE 
-      QUE DER ERRO, DAR O PTHREAD_EXIT TAMBEM!
-    */
+    int isSyncServer;
     bzero(buffer, BUFFERSIZE);
     strcpy(buffer, "TEST");
     n = write(newSyncThread->socketId, buffer, BUFFERSIZE);
@@ -107,6 +100,58 @@ void *syncClientThread(void* syncThread){
       pthread_mutex_unlock(&disconnectMutex);
       pthread_exit(NULL);
     }
+
+    // printf("ENVIOU TEST\n");
+
+    // //recebe o request de data do client
+    // while(1) {
+    //   bzero(buffer, BUFFERSIZE);
+    //   n = read(newSyncThread->socketId, buffer, BUFFERSIZE);
+    //   if (n == ERROR) {
+    //     perror("ERROR reading from socket\n");
+    //     exit(ERROR);
+    //   } else if(strcmp(buffer, "sendFileListDate") == 0){
+    //     //recebeu a data no buffer
+    //     break;
+    //   }      
+    // }
+
+    // printf("RECEBEU DATA DO CLIENT: %s\n", buffer);
+
+    // //envia a data do server para o client
+    // bzero(buffer, BUFFERSIZE);
+    // strcat(buffer, ctime(&user->lastModification));
+    // n = write(newSyncThread->socketId, buffer, BUFFERSIZE);
+    // if (n == ERROR) {
+    //   perror("ERROR reading from socket\n");
+    //   exit(ERROR);
+    // }
+
+    // printf("ENVIOU DATA PARA O CLIENT: %s\n", buffer);
+
+    // //recebe syncClient#data ou syncServer
+    // while(1) {
+    //   bzero(buffer, BUFFERSIZE);
+    //   n = read(newSyncThread->socketId, buffer, BUFFERSIZE);
+    //   if (n == ERROR) {
+    //     perror("ERROR reading from socket\n");
+    //     exit(ERROR);
+    //   } else if(n > 0){
+    //     //recebeu a data no buffer
+    //     break;
+    //   }      
+    // }
+
+    // printf("RECEBEU SYNC: %s\n", buffer);
+
+    // if(buffer[0] == 'C') {
+    //   user->lastModification = removeFileNameFromPath(buffer, "#");
+    //   syncClientServer(CLIENT, newSyncThread->socketId, newSyncThread->userId, &(user->filesList));
+    // }
+    // else if(buffer[0] == 'S') {
+    //   syncClientServer(SERVER, newSyncThread->socketId, newSyncThread->userId, &(user->filesList));
+    // }
+
   }
 }
 
@@ -182,7 +227,7 @@ void *auxClientThread(void* auxThread){
         char path[255]= "./clientsDirectories/sync_dir_";
         sprintf(path,"%s%s/",path, newAuxThread->userId);
 
-
+      printf("PATH SERVIDOR PARA RECEIVE_(PATH): %s\n", path);
       if(receive_(newAuxThread->socketId, path) == SUCCESS) {
         pthread_mutex_lock(&clientListMutex);       
           struct stat file_stat = getAttributes(path);
@@ -198,7 +243,8 @@ void *auxClientThread(void* auxThread){
     } else if(strcmp(command, "download") == 0) {
       pthread_mutex_lock(&(user->downloadUploadMutex));
         char path[255]= "./clientsDirectories/sync_dir_";
-        sprintf(path,"%s%s/%s",path, newAuxThread->userId, fileName);        
+        sprintf(path,"%s%s/%s",path, newAuxThread->userId, fileName);
+        printf("PATH SERVIDOR PARA SEND_(PATH): %s\n", path);        
         send_(newAuxThread->socketId, path);
       pthread_mutex_unlock(&(user->downloadUploadMutex));
     } 
@@ -272,6 +318,7 @@ void *acceptClient() {
           perror("ERROR writing to socket\n");
           exit(ERROR);
         }
+        pthread_mutex_unlock(&clientListMutex);
       }
       pthread_mutex_unlock(&userVerificationMutex);
   }
