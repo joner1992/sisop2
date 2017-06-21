@@ -312,6 +312,14 @@ void *syncSocket() {
               removeFileFromUser(fileName, &fileList, userId, CLIENT);
             } else if(strcmp(operation, "download") == 0) {
               printf("DOWNLOAD (getUserDirectory): %s\n", getUserDirectory(userId));
+
+              bzero(buffer, BUFFERSIZE);
+              n = write(sockfd, buffer, BUFFERSIZE);
+              if (n == ERROR) {
+                perror("ERROR writing to socket\n");
+                exit(ERROR);
+              }
+
               receive_(sockfd, getUserDirectory(userId));
               printf("RECEBEU: %s\n", fileName);
 
