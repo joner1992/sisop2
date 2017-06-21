@@ -149,6 +149,8 @@ char *adaptEntry(char *cmd) {
 
 void *syncSocket() {
   int n;
+  char oldListOfFiles[BUFFERSIZE];
+  char newListOfFiles[BUFFERSIZE];
   char buffer[BUFFERSIZE];
   char operation[BUFFERSIZE];
   char fileName[BUFFERSIZE];
@@ -184,6 +186,10 @@ void *syncSocket() {
     bzero(buffer, BUFFERSIZE);
     strcpy(buffer, getListFilesFromUser(buffer, &fileList, CLIENT));
 
+    //carrega lista antiga para comparação
+    bzero(oldListOfFiles, BUFFERSIZE);
+    strcpy(oldListOfFiles, buffer);
+
     numCommands = 1;
     for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
       if(numCommands %2 != 0){
@@ -199,6 +205,15 @@ void *syncSocket() {
     //adiciona novos arquivos
     getFilesFromUser(userId, &fileList, CLIENT);
     printf("ADICIONOU ARQUIVOS NA LISTA\n");
+
+    //carrega lista nova para comparação
+    strcpy(newListOfFiles, getListFilesFromUser(buffer, &fileList, CLIENT));
+    
+    //compara lista de arquivos
+    if(compareListsOfFiles(oldListOfFiles, newListOfFiles) == -1){
+      bzero(lastModification, BUFFERSIZE);
+      updateLocalTime(lastModification);
+    }
 
     //envia requisição de data
     bzero(buffer, BUFFERSIZE);

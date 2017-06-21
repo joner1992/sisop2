@@ -480,3 +480,33 @@ void updateLocalTime(char *buffer) {
 	return 0;
 }
 
+//compara 2 listas de strings, se tiverem adicionado algo ou removido, retorna -1
+int compareListsOfFiles(char *oldList, char *newList) {
+    char *forIterator;
+    char *subString;
+    char file[BUFFERSIZE];
+    char copyOfOldList[BUFFERSIZE];
+    char copyOfNewList[BUFFERSIZE];
+
+    strcpy(copyOfOldList, oldList);
+    strcpy(copyOfNewList, newList);
+
+    for (forIterator = strtok_r(copyOfOldList,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
+        bzero(file, BUFFERSIZE);
+        sprintf(file,"#%s#",forIterator);
+        if(strstr(newList, file)==NULL) {
+            return -1;
+        } 
+    }
+
+    for (forIterator = strtok_r(copyOfNewList,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
+        bzero(file, BUFFERSIZE);
+        sprintf(file,"#%s#",forIterator);
+        if(strstr(oldList, file)==NULL) {
+            return -1;
+        } 
+    }
+
+    return 1;
+}
+

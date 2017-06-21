@@ -104,7 +104,7 @@ void *syncClientThread(void* syncThread){
     }
 
     printf("ENVIOU TEST\n");
-
+    sleep(0.02);
     //recebe o request de data do client
     while(1) {
       bzero(buffer, BUFFERSIZE);
