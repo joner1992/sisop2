@@ -1,4 +1,5 @@
 #include "../include/dropboxUtils.h"
+
 int BUFFER_TRANSFER = 32 * 1024;
 int DEBUG = 1;
 
@@ -129,6 +130,8 @@ int send_(int socket, char* filename) {
    int size, read_size, stat, packet_index;
    char send_buffer[BUFFER_TRANSFER], read_buffer[256];
    packet_index = 1;
+   bzero(send_buffer, BUFFER_TRANSFER);
+   bzero(read_buffer, 256);
    
    FILE *file = fopen(filename, "rb");
 
@@ -194,6 +197,7 @@ int receive_(int socket, char path[255]) { // Start function
   char filename[255];
   
   bzero(fullPath, 255);
+  bzero(filearray, BUFFER_TRANSFER+1);
   bzero(filename, 255);
   
   FILE *file;
@@ -347,12 +351,15 @@ void getFilesFromUser(char* userId, PFILA2 filesList, int server) {
 
 char *removeFileNameFromPath(char *path, char *stopCharacter){
     char fileName[BUFFERSIZE];
+    char pathCopy[BUFFERSIZE];
     char *forIterator;
     char *subString;
 
+    strcpy(pathCopy, path);
+
     bzero(fileName, BUFFERSIZE);
 
-    for (forIterator = strtok_r(path,stopCharacter, &subString); forIterator != NULL; forIterator = strtok_r(NULL, stopCharacter, &subString)){
+    for (forIterator = strtok_r(pathCopy,stopCharacter, &subString); forIterator != NULL; forIterator = strtok_r(NULL, stopCharacter, &subString)){
         strcpy(fileName, forIterator);
     }
 
@@ -461,11 +468,15 @@ int removeFileFromSystem(char *path) {
     return ERROR;
 }
 
-void sync_client(int socketId, PFILA2 fileList) {
-    //
-}
+void updateLocalTime(char *buffer) {
+    time_t rawtime;
+	struct tm * timeinfo;
 
-void sync_server(int socketId, PFILA2 fileList) {
-    //
+	time (&rawtime);
+	timeinfo = localtime (&rawtime);
+
+	sprintf(buffer, "%d%0.2d%0.2d%d%d%d", timeinfo->tm_year + 1900, timeinfo->tm_mon+1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+
+	return 0;
 }
 

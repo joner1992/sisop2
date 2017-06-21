@@ -37,7 +37,10 @@ int verifyUserAuthentication(char *buffer, int newsockfd) {
     firstTimeUser->logged_in = 1;
     initializeList(&(firstTimeUser->filesList));
     //setando hora local
-    firstTimeUser->lastModification = time(NULL);
+    
+    //setting new date
+    bzero(firstTimeUser->lastModification, BUFFERSIZE);
+    updateLocalTime(firstTimeUser->lastModification);
     getFilesFromUser(firstTimeUser->userId, &(firstTimeUser->filesList), SERVER);
     AppendFila2(&clientList, (void *) firstTimeUser);   
     createDirectory(buffer, SERVER);
@@ -90,7 +93,6 @@ void *syncClientThread(void* syncThread){
   pthread_mutex_unlock(&clientListMutex);
 
   while(1){
-    int isSyncServer;
     bzero(buffer, BUFFERSIZE);
     strcpy(buffer, "TEST");
     n = write(newSyncThread->socketId, buffer, BUFFERSIZE);
@@ -110,26 +112,26 @@ void *syncClientThread(void* syncThread){
       if (n == ERROR) {
         perror("ERROR reading from socket\n");
         exit(ERROR);
-      } else if(strcmp(buffer, "sendFileListDate") == 0){
+      } else if(n > 0){
         //recebeu a data no buffer
         break;
       }      
     }
 
-    printf("RECEBEU DATA DO CLIENT: %s\n", buffer);
+    printf("RECEBEU PEDIDO DE DATA DO CLIENT: %s\n", buffer);
 
     //envia a data do server para o client
     bzero(buffer, BUFFERSIZE);
-    strcat(buffer, ctime(&user->lastModification));
+    strcat(buffer, user->lastModification);
     n = write(newSyncThread->socketId, buffer, BUFFERSIZE);
     if (n == ERROR) {
       perror("ERROR reading from socket\n");
       exit(ERROR);
     }
 
-    printf("ENVIOU DATA PARA O CLIENT: %s\n", buffer);
+    printf("ENVIOU DATA PARA O CLIENT: %s\n", user->lastModification);
 
-    //recebe syncClient#data ou syncServer
+    //recebe Client#data ou Server
     while(1) {
       bzero(buffer, BUFFERSIZE);
       n = read(newSyncThread->socketId, buffer, BUFFERSIZE);
@@ -146,13 +148,13 @@ void *syncClientThread(void* syncThread){
     printf("REMOVEFILENAMEFROMPATH? %s\n", removeFileNameFromPath(buffer, "#"));
 
     if(buffer[0] == 'C') {
-      user->lastModification = time(removeFileNameFromPath(buffer, "#"));
+      strcpy(user->lastModification, removeFileNameFromPath(buffer, "#"));
       syncClientServer(CLIENT, newSyncThread->socketId, newSyncThread->userId, &(user->filesList));
     }
     else if(buffer[0] == 'S') {
       syncClientServer(SERVER, newSyncThread->socketId, newSyncThread->userId, &(user->filesList));
     }
-
+    sleep(10);
   }
 }
 
@@ -239,6 +241,10 @@ void *auxClientThread(void* auxThread){
             addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &(user->filesList));
           pthread_mutex_unlock(&user->fileListMutex);
         pthread_mutex_unlock(&clientListMutex);
+
+        bzero(user->lastModification, BUFFERSIZE);
+        updateLocalTime(user->lastModification);
+        printf("ATUALIZA DATA DEPOIS DO UPLOAD**: %s\n", user->lastModification);
       }
       pthread_mutex_unlock(&(user->downloadUploadMutex));
 

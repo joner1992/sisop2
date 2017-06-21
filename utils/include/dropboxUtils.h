@@ -43,7 +43,7 @@ typedef struct client	{
  char userId[MAXNAME]; // id do usuario no servidor, que devera ser unico. Informado pela linha de comando
  FILA2 filesList; //metadados de cada arquivo que o cliente possui no servidor
  int logged_in; // cliente esta logado ou nao
- time_t lastModification;
+ char lastModification[BUFFERSIZE];
  pthread_mutex_t downloadUploadMutex;
  pthread_mutex_t fileListMutex;
 } ClientInfo;
@@ -74,3 +74,5 @@ int isRegularFile(struct dirent *file);
 char *receiveMessage (int socket, char *conditionToStop, int printing);
 int cleanList(PFILA2 fileList, char *fileName);
 char *getListFilesFromUser(char *buffer, PFILA2 fila, int isServer);
+void updateLocalTime(char *newDate);
+

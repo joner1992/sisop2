@@ -9,7 +9,7 @@ void syncClientServer(int isServer, int socketId, char *userId, PFILA2 fileList)
   char operationFilename[BUFFERSIZE];
   char operation[BUFFERSIZE];
   char serverFileList[BUFFERSIZE];
-  char path[BUFFERSIZE];
+  char path[255];
   char clientLocalFileList[BUFFERSIZE];
   char file[BUFFERSIZE];
   char *forIterator;
@@ -82,8 +82,9 @@ void syncClientServer(int isServer, int socketId, char *userId, PFILA2 fileList)
 
   bzero(buffer, BUFFERSIZE);
   bzero(file, BUFFERSIZE);
-  bzero(path, BUFFERSIZE);
+  bzero(path, 255);
   strcpy(buffer, serverFileList);
+
   //compara a lista do client com cada arquivo do server
   strcpy(path, "./clientsDirectories/sync_dir_");
   sprintf(path,"%s%s/",path, userId);
@@ -95,7 +96,9 @@ void syncClientServer(int isServer, int socketId, char *userId, PFILA2 fileList)
       if(isServer) {
         sprintf(operationFilename, "%s%s#%s#", operationFilename, "download", forIterator);
       } else {
-        removeFileFromSystem(path);
+        bzero(bufferPath, BUFFERSIZE);
+        sprintf(bufferPath, "%s%s", path, forIterator);
+        removeFileFromSystem(bufferPath);
         removeFileFromUser(forIterator, fileList, userId, SERVER);
       }
     } 
