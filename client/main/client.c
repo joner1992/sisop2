@@ -322,7 +322,7 @@ void *syncSocket() {
               printf("ENVIANDO COMPLETEPATH PARA GETATTRIBUTES: %s\n", completePath);
 
               struct stat file_stat = getAttributes(completePath);
-              bzero(lastModified, BUFFERSIZE);
+              bzero(lastModified, 36);
               strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
               printf("TERMINOU GETATTRIBUTES(lastModified): %s\n", lastModified);
               printf("TERMINOU GETATTRIBUTES(FILESTAT STSIZE): %d\n", file_stat.st_size);
@@ -333,7 +333,7 @@ void *syncSocket() {
             } else if(strcmp(operation, "upload") == 0) {
               bzero(completePath, BUFFERSIZE);
               strcat(completePath, getUserDirectory(userId));
-              strcat(completePath, fileName);
+              strcat(completePath, fileName);   
               printf("UPLOAD (COMPLETEPATH): %s\n", completePath);
               send_(sockfd, completePath);
             }

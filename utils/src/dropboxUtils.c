@@ -130,8 +130,8 @@ int send_(int socket, char* filename) {
    int size, read_size, stat, packet_index;
    char send_buffer[BUFFER_TRANSFER], read_buffer[256];
    packet_index = 1;
-   bzero(send_buffer, BUFFER_TRANSFER);
-   bzero(read_buffer, 256);
+   bzero(send_buffer, sizeof(BUFFER_TRANSFER));
+   bzero(read_buffer, sizeof(read_buffer));
    
    FILE *file = fopen(filename, "rb");
 
@@ -168,23 +168,23 @@ int send_(int socket, char* filename) {
     if(DEBUG) printf("Socket data: %c\n", read_buffer);
 
    while(!feof(file)) {
-      read_size = fread(send_buffer, 1, sizeof(send_buffer)-1, file);
+        read_size = fread(send_buffer, 1, sizeof(send_buffer)-1, file);
 
-      //Send data through our socket 
-      do {
-        stat = write(socket, send_buffer, read_size);  
-      } while (stat < 0);
+        //Send data through our socket 
+        do {
+            stat = write(socket, send_buffer, read_size);  
+        } while (stat < 0);
 
-       if(DEBUG) { 
-           printf("Packet Number: %i\n",packet_index);
+        if(DEBUG) { 
+            printf("Packet Number: %i\n",packet_index);
             printf("Packet Size Sent: %i\n\n\n",read_size);     
-       }
+        }
 
-      packet_index++;  
+        packet_index++;  
 
-      //Zero out our send buffer
-      bzero(send_buffer, sizeof(send_buffer));
-     }
+        //Zero out our send buffer
+        bzero(send_buffer, sizeof(send_buffer));
+    }
      
      fclose(file);
 }
