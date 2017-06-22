@@ -18,18 +18,9 @@ void syncClientServer(int isServer, int socketId, char *userId, PFILA2 fileList)
   int numCommands;
 
   //lê pares de arquivo e data de modificação
-  while(1){
-    bzero(buffer, BUFFERSIZE);
-    n = read(socketId, buffer, BUFFERSIZE);
-    if (n == ERROR) {
-      perror("ERROR reading from socket\n");
-      exit(ERROR);
-    } else if(n > 0){
-      //recebeu a data no buffer
-      break;
-    }
-  }
-
+  bzero(buffer, BUFFERSIZE);
+  strcpy(buffer, receiveMessage(socketId, "", FALSE));
+  
   printf("LEU PARES DE ARQUIVO E DATA DO CLIENT: %s\n", buffer);
 
   bzero(operationFilename, BUFFERSIZE);
@@ -54,6 +45,7 @@ void syncClientServer(int isServer, int socketId, char *userId, PFILA2 fileList)
       }
       numCommands++;
   }
+
   printf("PRIMEIRO OPERATION FILE NAME (UPDATE): %s\n", operationFilename);
 
   bzero(serverFileList, BUFFERSIZE);
@@ -132,17 +124,23 @@ void syncClientServer(int isServer, int socketId, char *userId, PFILA2 fileList)
           bzero(bufferPath, BUFFERSIZE);
           sprintf(bufferPath, "%s%s", path, nameOfFile);
           printf("ENVIOU ARQUIVO(PATH): %s#%s\n", bufferPath, path);
+          //envia arquivo
           send_(socketId, bufferPath);
         } else if(strcmp(operation, "upload") == 0){
           printf("RECEBEU ARQUIVO(PATH): %s\n", path);
-          receive_(socketId, path);
+          //recebe arquivo
+          if(receive_(socketId, path) == SUCCESS){
+            struct stat file_stat = getAttributes(path);
+            char lastModified[36];
+            bzero(lastModified, 36);
+            strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
+            addFileToUser(basename(path), ".txt", lastModified, file_stat.st_size, fileList);   
+          }
         }
-
       }
       numCommands++;
   }
-
-  return;
+  return 0;
 }
 
 char *getServerFileNames(PFILA2 fileList) {
@@ -507,15 +505,6 @@ char *listFiles(PFILA2 clientList, char *userId, int socket) {
     printf("%s", buffer);
   }
   return buffer;
-}
-
-void sendMessage (int socket, char *buffer) {
-  int n;
-  n = write(socket, buffer, BUFFERSIZE);
-  if (n == ERROR) {
-    perror("ERROR writing to socket\n");
-    exit(ERROR);
-  }
 }
 
 char *getFiles(char *buffer, PFILA2 fila, int socket) {

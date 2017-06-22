@@ -10,8 +10,7 @@ void createDirectory(char *argv, int server) {
         strcat(root, argv);
         mkdir(root, 0777);
         printf("Directory ./sync_dir_%s created successfully.\n", argv);
-    }
-    else {
+    } else {
         char home[100] = "/home/";
         char usr[50];
         if(!getlogin_r(usr, 50)) {
@@ -20,11 +19,9 @@ void createDirectory(char *argv, int server) {
             strcat(home, argv);
             mkdir(home, 0777);
             printf("Directory %s created successfully.\n", home);
-        }
-        else {
+        } else {
             exit(ERROR);
         }
-        
     }
 }
 
@@ -49,8 +46,6 @@ void initializeList(PFILA2 list){
   }
 }
 
-
-
 int searchForFile(char *fileName, PFILA2 fileList) {
   int first;
   first = FirstFila2(fileList);
@@ -61,16 +56,14 @@ int searchForFile(char *fileName, PFILA2 fileList) {
     fileWanted = (UserFiles*) GetAtIteratorFila2(fileList);
     if (strcmp(fileWanted->name, fileName) == 0) {
       return SUCCESS;
-    }
-    else {
+    } else {
       int iterator = 0;
       while (iterator == 0) {
         iterator = NextFila2(fileList);
         fileFound = GetAtIteratorFila2(fileList);
         if (fileFound == NULL) {
             return ERROR;
-        }
-        else {
+        } else {
           fileWanted = (UserFiles*) fileFound;
           if (strcmp(fileWanted->name, fileName) == 0) {
               return SUCCESS;
@@ -79,8 +72,7 @@ int searchForFile(char *fileName, PFILA2 fileList) {
       }
       return ERROR;
     }
-  }
-  else {
+  } else {
      return ERROR;
   }
 }
@@ -140,53 +132,53 @@ int send_(int socket, char* filename) {
         return -1;
    } 
     
-    if(DEBUG) printf("\nSending %s\n", basename(filename));
+   if(DEBUG) printf("\nSending %s\n", basename(filename));
     
-    write(socket, basename(filename), 255);
+   write(socket, basename(filename), 255);
     
-    if(DEBUG) printf("Getting file Size\n");   
+   if(DEBUG) printf("Getting file Size\n");   
 
    fseek(file, 0, SEEK_END);
    size = ftell(file);
    fseek(file, 0, SEEK_SET);
     
-    if(DEBUG) printf("Total file size: %i\n",size);
+   if(DEBUG) printf("Total file size: %i\n",size);
 
    //Send Size
-    if(DEBUG) printf("Sending file Size\n");
+   if(DEBUG) printf("Sending file Size\n");
    write(socket, (void *)&size, sizeof(int));
 
    //Send Picture as Byte Array
-    if(DEBUG) printf("Sending file as Byte Array\n");
+   if(DEBUG) printf("Sending file as Byte Array\n");
 
    do { //Read while we get errors that are due to signals.
       stat=read(socket, &read_buffer , 255);
-       if(DEBUG) printf("Bytes read: %i\n",stat);
+      if(DEBUG) printf("Bytes read: %i\n",stat);
    } while (stat < 0);
 
-    if(DEBUG) printf("Received data in socket\n");
-    if(DEBUG) printf("Socket data: %c\n", read_buffer);
+   if(DEBUG) printf("Received data in socket\n");
+   if(DEBUG) printf("Socket data: %c\n", read_buffer);
 
    while(!feof(file)) {
-        read_size = fread(send_buffer, 1, sizeof(send_buffer)-1, file);
+    read_size = fread(send_buffer, 1, sizeof(send_buffer)-1, file);
 
-        //Send data through our socket 
-        do {
-            stat = write(socket, send_buffer, read_size);  
-        } while (stat < 0);
+    //Send data through our socket 
+    do {
+        stat = write(socket, send_buffer, read_size);  
+    } while (stat < 0);
 
-        if(DEBUG) { 
-            printf("Packet Number: %i\n",packet_index);
-            printf("Packet Size Sent: %i\n\n\n",read_size);     
-        }
-
-        packet_index++;  
-
-        //Zero out our send buffer
-        bzero(send_buffer, sizeof(send_buffer));
+    if(DEBUG) { 
+        printf("Packet Number: %i\n",packet_index);
+        printf("Packet Size Sent: %i\n\n\n",read_size);     
     }
+
+    packet_index++;  
+
+    //Zero out our send buffer
+    bzero(send_buffer, sizeof(send_buffer));
+   }
      
-     fclose(file);
+  fclose(file);
 }
 
 int receive_(int socket, char path[255]) { // Start function 
@@ -297,7 +289,6 @@ struct stat getAttributes(char* pathFile) {
         perror("ERROR Get attributes from file");
         return;
   }
-
   return attributes;
 }
 
@@ -366,7 +357,7 @@ char *removeFileNameFromPath(char *path, char *stopCharacter){
     return fileName;
 }
 
-char *receiveMessage (int socket, char *conditionToStop, int printing) {
+char *receiveMessageList (int socket, char *conditionToStop, int printing) {
     int n;
     char buffer[BUFFERSIZE];
     
@@ -510,3 +501,39 @@ int compareListsOfFiles(char *oldList, char *newList) {
     return 1;
 }
 
+void sendMessage (int socket, char *buffer) {
+  int n;
+  n = write(socket, buffer, BUFFERSIZE);
+  if (n == ERROR) {
+    perror("ERROR writing to socket\n");
+    exit(ERROR);
+  }
+
+  return 0;
+}
+
+char *receiveMessage(int socket, char *condition, int isCondition) {
+    int n;
+    char buffer[BUFFERSIZE];
+    
+    while(1){
+        bzero(buffer, BUFFERSIZE);
+        n = read(socket, buffer, BUFFERSIZE);
+        if (n == ERROR) {
+        perror("ERROR reading to socket\n");
+        exit(ERROR);
+        }
+
+        if(isCondition) {
+            if(strcmp(buffer, condition) == 0) {
+                break;
+            }
+        } else {
+            if(n > 0){
+                break;
+            }
+        }
+
+    }
+    return buffer;
+}

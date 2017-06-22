@@ -484,7 +484,7 @@ void *auxSocketFunctions() {
       }
       while(1){
         bzero(buffer, BUFFERSIZE);
-        strcpy(buffer, receiveMessage(aux_sockfd, "exit", 1));
+        strcpy(buffer, receiveMessageList(aux_sockfd, "exit", 1));
 
         if(strcmp(buffer, "exit") == 0){
           break;

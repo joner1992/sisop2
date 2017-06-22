@@ -28,6 +28,8 @@
 #define MAXDEVICES 2
 #define DISCONNECTEXISTEDBEFORE 1
 #define DISCONNECT 0
+#define TRUE 1
+#define FALSE 0
 
 // Estruturas estarao dispostas no servidor na forma de uma lista encadeada de clientes
 typedef struct	file_info	{
@@ -69,9 +71,12 @@ int isRegularFile(struct dirent *file);
     2 = printa sem pular linhas entre os receives
     1 = printa pulando linhas entre os receives
     0 = não printa
-
 */
-char *receiveMessage (int socket, char *conditionToStop, int printing);
+void sendMessage (int socket, char *buffer);
+//recebe mensagem, com parametro de condição de parada e print, foi usado pra printar lista
+char *receiveMessageList (int socket, char *conditionToStop, int printing);
+//recebe mensagem, se isCondition = 1, verifica se a resposta é igual a condition
+char *receiveMessage(int socket, char *condition, int isCondition);
 int cleanList(PFILA2 fileList, char *fileName);
 char *getListFilesFromUser(char *buffer, PFILA2 fila, int isServer);
 void updateLocalTime(char *newDate);

@@ -93,6 +93,7 @@ void *syncClientThread(void* syncThread){
   pthread_mutex_unlock(&clientListMutex);
 
   while(1){
+
     bzero(buffer, BUFFERSIZE);
     strcpy(buffer, "TEST");
     n = write(newSyncThread->socketId, buffer, BUFFERSIZE);
@@ -102,52 +103,30 @@ void *syncClientThread(void* syncThread){
       pthread_mutex_unlock(&disconnectMutex);
       pthread_exit(NULL);
     }
-
     printf("ENVIOU TEST\n");
-    sleep(0.02);
+    
     //recebe o request de data do client
-    while(1) {
-      bzero(buffer, BUFFERSIZE);
-      n = read(newSyncThread->socketId, buffer, BUFFERSIZE);
-      if (n == ERROR) {
-        perror("ERROR reading from socket\n");
-        exit(ERROR);
-      } else if(n > 0){
-        //recebeu a data no buffer
-        break;
-      }      
-    }
-
+    bzero(buffer, BUFFERSIZE);
+    strcpy(buffer, receiveMessage(newSyncThread->socketId, "sendFileListDate", TRUE));
+    
     printf("RECEBEU PEDIDO DE DATA DO CLIENT: %s\n", buffer);
 
     //envia a data do server para o client
     bzero(buffer, BUFFERSIZE);
     strcat(buffer, user->lastModification);
-    n = write(newSyncThread->socketId, buffer, BUFFERSIZE);
-    if (n == ERROR) {
-      perror("ERROR reading from socket\n");
-      exit(ERROR);
-    }
+    sendMessage(newSyncThread->socketId,buffer);
 
     printf("ENVIOU DATA PARA O CLIENT: %s\n", user->lastModification);
 
     //recebe Client#data ou Server
-    while(1) {
-      bzero(buffer, BUFFERSIZE);
-      n = read(newSyncThread->socketId, buffer, BUFFERSIZE);
-      if (n == ERROR) {
-        perror("ERROR reading from socket\n");
-        exit(ERROR);
-      } else if(n > 0){
-        //recebeu a data no buffer
-        break;
-      }      
-    }
-
+    bzero(buffer, BUFFERSIZE);
+    strcpy(buffer, receiveMessage(newSyncThread->socketId, "", FALSE));
+    
     printf("RECEBEU SYNC: %s\n", buffer);
     printf("REMOVEFILENAMEFROMPATH? %s\n", removeFileNameFromPath(buffer, "#"));
 
     if(buffer[0] == 'C') {
+      bzero(user->lastModification, BUFFERSIZE);
       strcpy(user->lastModification, removeFileNameFromPath(buffer, "#"));
       syncClientServer(CLIENT, newSyncThread->socketId, newSyncThread->userId, &(user->filesList));
     }
