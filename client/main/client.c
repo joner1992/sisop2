@@ -216,25 +216,11 @@ void *syncSocket() {
     }
 
     //envia requisição de data
-    bzero(buffer, BUFFERSIZE);
-    strcpy(buffer, "sendFileListDate");
-    n = write(sockfd, buffer, BUFFERSIZE);
-    if (n == ERROR) {
-      perror("ERROR reading from socket\n");
-      exit(ERROR);
-    }
+    sendMessage(sockfd, "sendFileListDate");
 
     //recebe a data do servidor
-    while(1) {
-      bzero(buffer, BUFFERSIZE);
-      n = read(sockfd, buffer, BUFFERSIZE);
-      if (n == ERROR) {
-        perror("ERROR reading from socket\n");
-        exit(ERROR);
-      } else if(n > 0){
-        break;
-      }      
-    }
+    bzero(buffer, BUFFERSIZE);
+    strcpy(buffer, receiveMessage(sockfd, "", FALSE));
 
     printf("RECEBEU A DATA: %s\n", buffer);
 
@@ -243,33 +229,25 @@ void *syncSocket() {
       strcpy(buffer, "Client#");
       strcat(buffer, lastModification);
       printf("last modification depois de client#: %s\n", lastModification);
-      n = write(sockfd, buffer, BUFFERSIZE);
-      if (n == ERROR) {
-        perror("ERROR reading from socket\n");
-        exit(ERROR);
-      }
+      sendMessage(sockfd, buffer);
+
       ignoreUpdate = 0;
+
     } else if(strcmp(lastModification, buffer) < 0) {
       bzero(lastModification, BUFFERSIZE);
       strcpy(lastModification, buffer);
       printf("SETOU DATA DO CLIENT COMO: %s\n", lastModification);
+      
       bzero(buffer, BUFFERSIZE);
       strcpy(buffer, "Server#");
-      n = write(sockfd, buffer, BUFFERSIZE);
-      if (n == ERROR) {
-        perror("ERROR reading from socket\n");
-        exit(ERROR);
-      }
+      sendMessage(sockfd, buffer);
+
       ignoreUpdate = 0;
+
     } else if(strcmp(lastModification, buffer) == 0){
       printf("DATA IGUAL NAO FACA NADA!\n");
-      bzero(buffer, BUFFERSIZE);
-      strcpy(buffer, "nada");
-      n = write(sockfd, buffer, BUFFERSIZE);
-      if (n == ERROR) {
-        perror("ERROR reading from socket\n");
-        exit(ERROR);
-      }
+      sendMessage(sockfd, "nada");
+
       ignoreUpdate = 1;
     }
 
@@ -281,26 +259,13 @@ void *syncSocket() {
       //envia lista para server
       bzero(buffer, BUFFERSIZE);
       strcpy(buffer, getListFilesFromUser(buffer, &fileList, CLIENT));
-      n = write(sockfd, buffer, BUFFERSIZE);
-      if (n == ERROR) {
-        perror("ERROR reading from socket\n");
-        exit(ERROR);
-      }
+      sendMessage(sockfd, buffer);
 
       printf("ENVIA LISTA PARA SERVER: %s\n", buffer);
 
       //le operacao#nomearquivo#operacao#nomearquivo#operacao#nomearquivo#operacao#nomearquivo#
-      while(1){
-        bzero(buffer, BUFFERSIZE);
-        n = read(sockfd, buffer, BUFFERSIZE);
-        if (n == ERROR) {
-          perror("ERROR reading from socket\n");
-          exit(ERROR);
-        } else if(n > 0){
-          //recebeu a data no buffer
-          break;
-        }
-      }
+      bzero(buffer, BUFFERSIZE);
+      strcpy(buffer, receiveMessage(sockfd, "", FALSE));
 
       printf("RECEBEU OPERACAO#ARQUIVO: %s\n", buffer);
 
@@ -323,17 +288,18 @@ void *syncSocket() {
               strcat(completePath, getUserDirectory(userId));
               strcat(completePath, fileName);
 
+              //pedindo autorização para começar
+              sendMessage(sockfd, "removingFile");
+              receiveMessage(sockfd, "okRemovingFile", TRUE);
+
               removeFileFromSystem(completePath);
               removeFileFromUser(fileName, &fileList, userId, CLIENT);
             } else if(strcmp(operation, "download") == 0) {
               printf("DOWNLOAD (getUserDirectory): %s\n", getUserDirectory(userId));
 
-              bzero(buffer, BUFFERSIZE);
-              n = write(sockfd, buffer, BUFFERSIZE);
-              if (n == ERROR) {
-                perror("ERROR writing to socket\n");
-                exit(ERROR);
-              }
+              //pedindo autorização para começar
+              sendMessage(sockfd, "downloadingFile");
+              receiveMessage(sockfd, "okDownloadingFile", TRUE);
 
               receive_(sockfd, getUserDirectory(userId));
               printf("RECEBEU: %s\n", fileName);
@@ -358,6 +324,11 @@ void *syncSocket() {
               strcat(completePath, getUserDirectory(userId));
               strcat(completePath, fileName);   
               printf("UPLOAD (COMPLETEPATH): %s\n", completePath);
+              
+              //pedindo autorização para começar
+              sendMessage(sockfd, "uploadingFile");
+              receiveMessage(sockfd, "okUploadingFile", TRUE);
+
               send_(sockfd, completePath);
             }
           }
