@@ -8,9 +8,7 @@ struct sockaddr_in serv_addr;
 int server_port;
 
 // Queue for clients structs
-FILA2 clientList;
-FILA2 auxSocketsList;
-FILA2 syncSocketsList;
+struct chain_list* ClientList;
 
 int verifyAuxSocket(char *buffer) {
   char buffercmp[BUFFERSIZE];
@@ -207,87 +205,51 @@ void *auxClientThread(void* auxThread){
 
 
 void *acceptClient() {
-  while(1) {
-    int newsockfd, n;
-    socklen_t client;
-    struct sockaddr_in cli_addr;
-    char buffer[BUFFERSIZE];
 
-    client = sizeof(struct sockaddr_in);
-    if ((newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &client)) == ERROR)
-    {
-      perror("ERROR on accept client");
-      exit(ERROR);
-    } 
+  while(1){
+
+  /* Aguarda a conexão do cliente no socket principal */
+  if((new_socket_id = accept(server_socket_id, (struct sockaddr *) &client_address, &client_len)) != ERRO){
     
-    pthread_mutex_lock(&userVerificationMutex);
+    //verificar usuário!
 
-    bzero(buffer, BUFFERSIZE);
-    n = read(newsockfd, buffer, BUFFERSIZE);
-    if (n == ERROR) {
-      close(newsockfd);
-    }
-  
-    if(verifyAuxSocket(buffer) == SUCCESS){
-      clientThread *auxSocket = (clientThread*) malloc(sizeof(clientThread));
-      strcpy(auxSocket->userId, cropUserId(buffer));
-      auxSocket->socketId = newsockfd;
-      AppendFila2(&auxSocketsList, (void *) auxSocket);
-      
-      pthread_mutex_unlock(&userVerificationMutex);
-        
-      //cria thread auxiliar para download/upload/comandos
-      pthread_t auxThread;
-      pthread_attr_t attributesAuxThread;
-      pthread_attr_init(&attributesAuxThread);
-      pthread_create(&auxThread,&attributesAuxThread, auxClientThread, (void *) auxSocket);
+    /* Aguarda a conexão do cliente no socket de sincronização */
+      if((new_sync_socket = accept(server_socket_id, (struct sockaddr *) &client_sync_address, &client_len)) != ERRO){
 
-    }
-    else if(verifyUserAuthentication(buffer, newsockfd) == SUCCESS){
-        pthread_mutex_unlock(&clientListMutex);
-        //aqui ele já adicionou 1 no numero de devices e já está criando a thread para continuar utilizando o no sync.
-        clientThread *syncSocket = (clientThread*) malloc(sizeof(clientThread));
-        strcpy(syncSocket->userId, buffer);
-        syncSocket->socketId = newsockfd;
-        AppendFila2(&syncSocketsList, (void *) syncSocket);    
+        arg_struct *args = malloc(sizeof(arg_struct *));
+        args->socket_id = new_socket_id;
+        args->sync_socket = new_sync_socket;
 
-        //cria thread principal para sync
-        pthread_t syncThread;
-        pthread_attr_t attributesSyncThread;
-        pthread_attr_init(&attributesSyncThread);
-        pthread_create(&syncThread,&attributesSyncThread, syncClientThread, (void *) syncSocket);
-
-        bzero(buffer, BUFFERSIZE);
-        strcpy(buffer, "OK");
-        n = write(newsockfd, buffer, BUFFERSIZE);
-        if (n == ERROR) {
-          perror("ERROR writing to socket\n");
-          exit(ERROR);
-        }
-      } else {
-        bzero(buffer, BUFFERSIZE);
-        strcpy(buffer, "NOTOK");
-        n = write(newsockfd, buffer, BUFFERSIZE);
-        if (n == ERROR) {
-          perror("ERROR writing to socket\n");
-          exit(ERROR);
+        if(pthread_create( &c_thread, NULL, client_thread, (void *)args) != 0){
+          printf("[main] ERROR on thread creation.\n");
+          close(new_socket_id);
+          close(new_sync_socket);
+          exit(1);
         }
       }
-      pthread_mutex_unlock(&userVerificationMutex);
+      else {
+        printf("[main] Erro no accept do sync\n");
+        close(new_sync_socket);
+        exit(1);
+      }
+
+     //
   }
+  else{
+    printf("[main] Erro no accept\n");
+    close(new_socket_id);
+    exit(1);
+  } 
 }
 
 
 int main(int argc, char *argv[]) 
 { 
+  int new_socket_id, new_sync_socket;
   if(validateServerArguments(argc, argv) != ERROR) 
   {
     //lista de dados de clientes e files
-    initializeList(&clientList);
-    //lista de sockets auxiliares logados
-    initializeList(&auxSocketsList);
-    //lista de sockets principais logados(sync)
-    initializeList(&syncSocketsList);
+    ClientList = chain_create_list();
 
     if((server_port = getPort(argv[2])) == ERROR) {
       printf ("ERROR on attributing the port");
