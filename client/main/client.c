@@ -167,8 +167,9 @@ void *syncSocket() {
       close(sockfd);
       pthread_exit(NULL);
     }
-
+    
     printf("TENTANDO RECEBER TEST\n");
+    
     //recebe TEST para ver se a thread existe
     while(1) {
       bzero(buffer, BUFFERSIZE);
@@ -289,19 +290,12 @@ void *syncSocket() {
               strcat(completePath, fileName);
 
               //pedindo autorização para começar
-              sendMessage(sockfd, "removingFile");
-              receiveMessage(sockfd, "okRemovingFile", TRUE);
-
               removeFileFromSystem(completePath);
               removeFileFromUser(fileName, &fileList, userId, CLIENT);
             } else if(strcmp(operation, "download") == 0) {
               printf("DOWNLOAD (getUserDirectory): %s\n", getUserDirectory(userId));
 
-              //pedindo autorização para começar
-              sendMessage(sockfd, "downloadingFile");
-              receiveMessage(sockfd, "okDownloadingFile", TRUE);
-
-              receive_(sockfd, getUserDirectory(userId));
+              newReceive(sockfd, getUserDirectory(userId));
               printf("RECEBEU: %s\n", fileName);
 
               bzero(completePath, BUFFERSIZE);
@@ -310,13 +304,13 @@ void *syncSocket() {
 
               printf("ENVIANDO COMPLETEPATH PARA GETATTRIBUTES: %s\n", completePath);
 
-              struct stat file_stat = getAttributes(completePath);
-              bzero(lastModified, 36);
-              strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
+              //struct stat file_stat = getAttributes(completePath);
+              //bzero(lastModified, 36);
+              //strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
               printf("TERMINOU GETATTRIBUTES(lastModified): %s\n", lastModified);
-              printf("TERMINOU GETATTRIBUTES(FILESTAT STSIZE): %d\n", file_stat.st_size);
-
-              addFileToUser(fileName, ".txt", lastModified, file_stat.st_size, &fileList);
+              //printf("TERMINOU GETATTRIBUTES(FILESTAT STSIZE): %d\n", file_stat.st_size);
+              getchar();
+              //addFileToUser(fileName, ".txt", lastModified, file_stat.st_size, &fileList);
 
               printf("ADDFILES DONE: %s\n", lastModified);
             } else if(strcmp(operation, "upload") == 0) {
@@ -326,10 +320,7 @@ void *syncSocket() {
               printf("UPLOAD (COMPLETEPATH): %s\n", completePath);
               
               //pedindo autorização para começar
-              sendMessage(sockfd, "uploadingFile");
-              receiveMessage(sockfd, "okUploadingFile", TRUE);
-
-              send_(sockfd, completePath);
+              newSend(sockfd, completePath);
             }
           }
           numCommands++;
@@ -403,13 +394,10 @@ void *auxSocketFunctions() {
           perror("ERROR read from socket\n");
           exit(ERROR);
       }
-      /*
-        CONVERSAR SOBRE, O UPLOAD TA SUPONDO QUE O ARQUIVO SEMPRE VAI ESTAR LOCALMENTE NO CLIENT NAO?
-        PQ O BUFFER TA VINDO ./FILES/IN/NOMEDOARQUIVO.EXTENSAO
-      */
+
       //path completo do arquivo no buffer
       printf("ENTRANDO NO SEND_(UPLOAD): %s\n", buffer);
-      send_(aux_sockfd, buffer);
+      newSend(aux_sockfd, buffer);
 
     } else if (strcmp(command, "download") == 0) {
       //Enviando o comando para o servidor
@@ -423,7 +411,7 @@ void *auxSocketFunctions() {
       printf("ENTRANDO NO RECEIVE_(DOWNLOAD): %s\n", completePath);
       // char path[255]= "./clientsDirectories/sync_dir_";
       //   sprintf(path,"%s%s/%s",path, newAuxThread->userId, fileName);
-      if(receive_(aux_sockfd, completePath) == SUCCESS) {
+      if(newReceive(aux_sockfd, completePath) == SUCCESS) {
         //aqui o completePath está sendo concatenado com o fileName
         strcat(completePath, fileName);
         struct stat file_stat = getAttributes(completePath);

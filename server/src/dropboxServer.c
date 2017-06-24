@@ -125,26 +125,18 @@ void syncClientServer(int isServer, int socketId, char *userId, PFILA2 fileList)
           sprintf(bufferPath, "%s%s", path, nameOfFile);
           printf("ENVIOU ARQUIVO(PATH): %s#%s\n", bufferPath, path);
 
-          //recebendo autorização para começar
-          receiveMessage(socketId, "downloadingFile", TRUE);
-          sendMessage(socketId, "okDownloadingFile");
-
           //envia arquivo
-          send_(socketId, bufferPath);
+          newSend(socketId, bufferPath);
         } else if(strcmp(operation, "upload") == 0){
           printf("RECEBEU ARQUIVO(PATH): %s\n", path);
 
-          //recebendo autorização para começar
-          receiveMessage(socketId, "uploadingFile", TRUE);
-          sendMessage(socketId, "okUploadingFile");
-
           //recebe arquivo
-          if(receive_(socketId, path) == SUCCESS){
-            struct stat file_stat = getAttributes(path);
-            char lastModified[36];
-            bzero(lastModified, 36);
-            strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
-            addFileToUser(basename(path), ".txt", lastModified, file_stat.st_size, fileList);   
+          if(newReceive(socketId, path) == SUCCESS){
+            // struct stat file_stat = getAttributes(path);
+            // char lastModified[36];
+            // bzero(lastModified, 36);
+            // strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
+            // addFileToUser(basename(path), ".txt", lastModified, file_stat.st_size, fileList);   
           }
         } else if(strcmp(operation, "delete") == 0){
           //recebendo autorização para começar

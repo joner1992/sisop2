@@ -210,7 +210,7 @@ void *auxClientThread(void* auxThread){
         sprintf(path,"%s%s/",path, newAuxThread->userId);
 
       printf("PATH SERVIDOR PARA RECEIVE_(PATH): %s\n", path);
-      if(receive_(newAuxThread->socketId, path) == SUCCESS) {
+      if(newReceive(newAuxThread->socketId, path) == SUCCESS) {
         pthread_mutex_lock(&clientListMutex);       
           struct stat file_stat = getAttributes(path);
           char lastModified[36];
@@ -232,7 +232,7 @@ void *auxClientThread(void* auxThread){
         char path[255]= "./clientsDirectories/sync_dir_";
         sprintf(path,"%s%s/%s",path, newAuxThread->userId, fileName);
         printf("PATH SERVIDOR PARA SEND_(PATH): %s\n", path);        
-        send_(newAuxThread->socketId, path);
+        newSend(newAuxThread->socketId, path);
       pthread_mutex_unlock(&(user->downloadUploadMutex));
     } 
   }

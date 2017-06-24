@@ -30,6 +30,7 @@
 #define DISCONNECT 0
 #define TRUE 1
 #define FALSE 0
+#define TAM_MAX 1024
 
 // Estruturas estarao dispostas no servidor na forma de uma lista encadeada de clientes
 typedef struct	file_info	{
@@ -80,4 +81,6 @@ char *receiveMessage(int socket, char *condition, int isCondition);
 int cleanList(PFILA2 fileList, char *fileName);
 char *getListFilesFromUser(char *buffer, PFILA2 fila, int isServer);
 void updateLocalTime(char *newDate);
+int newReceive(int socket, char *pathWithoutFilename);
+int newSend(int socket, char *pathWithFilename);
 
