@@ -171,28 +171,19 @@ void *commandsThread() {
 		  numCommands++;
     }
 
-    printf("[Command]-[%s]: %s\n", command, fileName);
-
     if(strcmp(command, "upload") == 0) {
       
-      printf("[Command] Send file %s\n", fileName);
       send_(commandsSocket, fileName);
 
     } else if (strcmp(command, "download") == 0) {    
       //receive the getUserDirectory
       strcpy(completePath, getUserDirectory(userId));
-      printf("[Command] completePath to receive: %s\n", completePath);
       if(receive_(commandsSocket, completePath) == SUCCESS) {
         //aqui o completePath está sendo concatenado com o fileName
-        printf("[Command] Received file %s at %s\n", fileName, getUserDirectory(userId));
         //receive the current lastModification
         strcpy(lastModification, receiveMessage(commandsSocket, "", FALSE));
         //set in the addfiles
         struct stat fileStat = getAttributes(strcat(completePath, fileName));
-        printf("[Command] Adding to filelist \n");
-        printf("[Command] Filename: %s\n", fileName);
-        printf("[Command] Last Modification: %s\n", lastModification);
-        printf("[Command] Size: %d\n", fileStat.st_size);
         //add the file to filelist
         addFilesToFileList(fileList, fileName, lastModification, fileStat.st_size);
       }
@@ -218,7 +209,7 @@ void *commandsThread() {
         bzero(buffer, BUFFERSIZE);
         strcpy(buffer, receiveMessage(commandsSocket, "", FALSE));
         if(strcmp(buffer, "endList") == 0) {
-          printf("|---------------EMPTY LIST------------|\n");
+          printf("|------------EMPTY LIST------------|\n");
         } else {
           do{
             printf("|   File: %s\n", buffer);  
@@ -233,25 +224,88 @@ void *commandsThread() {
 }
 
 void *syncThread(){
+  char stringDirentList[BUFFERSIZE], stringFileList[BUFFERSIZE];
+  chain_list *direntList;
+
   char buffer[BUFFERSIZE];
   bzero(buffer, BUFFERSIZE);
 
   //remove files from user
-  removeFileFromSystem(userId);
+  removeFileFromSystem(userId, CLIENT);
 
   //receive list of files from server
   strcpy(buffer, receiveMessage(syncSocket, "", FALSE));
+
   //receive all files adding them to the filesList when client just logged in
   receiveServerFiles(syncSocket, buffer, path, fileList);
+
   //receive the server datetime and set
   bzero(fileListlastModification, TIMESIZE);
   strcpy(fileListlastModification, receiveMessage(syncSocket, "", FALSE));
   
-  printf("[Sync] First sync with Server is DONE at %s\n", fileListlastModification);
-
   while(1) {
-    
+    //execute dirent function to update all files from client
+    chain_list *direntList = getDirentsFileList(path);
 
+    //cast lists to string
+    bzero(stringDirentList, BUFFERSIZE);
+    bzero(stringFileList, BUFFERSIZE);
+    strcpy(stringDirentList, fileListToArray(direntList));
+    strcpy(stringFileList, fileListToArray(fileList));
+
+    //compare global list with direntsList to set new date 
+    if(compareLists(stringDirentList, stringFileList) == ERROR) {
+      chain_clear(fileList);
+      fileList = direntList;
+      bzero(fileListlastModification, TIMESIZE);
+      updateLocalTime(fileListlastModification);
+    }
+
+    //send date to server
+    sendMessage(syncSocket, fileListlastModification);
+
+    //receive which option it should continue
+    bzero(buffer, BUFFERSIZE);
+    strcpy(buffer, receiveMessage(syncSocket, "", FALSE));
+
+    //if message equals sendEverything, send everyFile to the server
+    if(strcmp(buffer, "sendEverything") == 0) {
+      bzero(buffer, BUFFERSIZE);
+      printf("[CLIENT] Received sendEverything\n");
+
+      //get list of files and transform it to string
+      strcpy(buffer, fileListToArray(fileList));
+      //send list of files to the server
+      sendMessage(syncSocket, buffer);
+      printf("[SERVER] receiveEverything SENT from SERVER filelist %s\n", buffer);
+      //start uploading files
+      sendServerFiles(syncSocket, buffer, path);
+
+      //send current last file modification
+      sendMessage(syncSocket, fileListlastModification);
+
+
+    } else if(strcmp(buffer, "receiveEverything") == 0) {
+      //if message equals receiveEverything, receive everyFile
+      printf("[CLIENT] Received receiveEverything\n");
+      //remove files from user     
+      removeFileFromSystem(userId, CLIENT);
+
+      //clean userFileList
+      chain_clear(fileList);
+
+      //receive list of files from server
+      bzero(buffer, BUFFERSIZE);
+      strcpy(buffer, receiveMessage(syncSocket, "", FALSE));
+      printf("[SERVER] receiveEverything RECEIVED from SERVER filelist %s\n", buffer);
+
+      //receive all files adding them to the filesList when client just logged in
+      receiveServerFiles(syncSocket, buffer, path, fileList);
+      
+      //receive the server datetime and set
+      bzero(fileListlastModification, TIMESIZE);
+      strcpy(fileListlastModification, receiveMessage(syncSocket, "", FALSE));
+    }
     sleep(10);
   }
 }
@@ -293,16 +347,6 @@ int main(int argc, char *argv[]) {
     } else {
       printf("[Client] ERROR Max connections reached!\n");
     }
-
-
-    //Normal thread para sync
-
-    //pthread_t readWriteThread;
-    //pthread_attr_t attributesReadWriteThread;
-    //pthread_attr_init(&attributesReadWriteThread);
-    //pthread_create(&readWriteThread,&attributesReadWriteThread,readWriteUser,NULL);
-            
-    //close(syncSocket);
 
   } else {
     return ERROR;

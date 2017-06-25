@@ -44,6 +44,7 @@ void bindServerSocket() {
 
 void *clientSyncThread(void *threadArg){
   char buffer[BUFFERSIZE];
+  char clientDate[TIMESIZE];
   char path[255];
   socketsStruct *clientSockets = threadArg;
   //search for clientInfo structure
@@ -64,11 +65,52 @@ void *clientSyncThread(void *threadArg){
   //send current User last modification
   sendMessage(clientSockets->syncSocket, clientNode->client->lastModification); 
 
-  printf("[Server-Sync] First sync with client is DONE at %s\n", clientNode->client->lastModification);
+  while(1) {  
+    //receive client date
+    bzero(buffer, BUFFERSIZE);
+    strcpy(buffer, receiveMessage(clientSockets->syncSocket, "", FALSE));
 
-  while(1) {
+    //if client date > server date
+    if(strcmp(buffer, clientNode->client->lastModification) > 0) {
+      sendMessage(clientSockets->syncSocket, "sendEverything");
+      printf("[SERVER] sendEverything SENT to CLIENT\n");
+      //remove everything from server
+      removeFileFromSystem(clientNode->client->userId, SERVER);    
 
+      //clean userFileList
+      chain_clear(clientNode->client->fileList);
+      
+      //receive list of files from client
+      bzero(buffer, BUFFERSIZE);
+      strcpy(buffer, receiveMessage(clientSockets->syncSocket, "", FALSE));
+      
+      //receive all files adding them to the filesList when client synced
+      receiveServerFiles(clientSockets->syncSocket, buffer, path, clientNode->client->fileList);
+      printf("[SERVER] sendEverything RECEIVED filelist CLIENT %s\n", buffer);
+      //receive the client datetime and set
+      bzero(clientNode->client->lastModification, TIMESIZE);
+      strcpy(clientNode->client->lastModification, receiveMessage(clientSockets->syncSocket, "", FALSE));
+      
+    } else if(strcmp(buffer, clientNode->client->lastModification) < 0) { //if client date < server date
+      sendMessage(clientSockets->syncSocket, "receiveEverything");
+      printf("[SERVER] receiveEverything SENT to CLIENT\n");
+      //remove everything from client and send everything from server
+      bzero(buffer, BUFFERSIZE);
+      //get list of files and transform it to string
+      strcpy(buffer, fileListToArray(clientNode->client->fileList));
+      printf("[SERVER] receiveEverything SENT filelist CLIENT %s\n", buffer);
+      //send list of files to the client
+      sendMessage(clientSockets->syncSocket, buffer); 
+      
+      //start uploading files
+      sendServerFiles(clientSockets->syncSocket, buffer, path);
 
+      //send current User last modification
+      sendMessage(clientSockets->syncSocket, clientNode->client->lastModification);
+    } else {
+      sendMessage(clientSockets->syncSocket, "doNothing");
+      printf("[SERVER] doNothing SENT to CLIENT\n");
+    }
     sleep(10);
   }
 }
@@ -111,8 +153,6 @@ void *clientCommandsThread(void *threadArg) {
     close(clientSockets->syncSocket);
     exit(1);
   }
-
-  printf("[Server] starting commands while\n");
 
   while(1) {
     bzero(buffer, BUFFERSIZE);
@@ -172,21 +212,19 @@ void *clientCommandsThread(void *threadArg) {
       -------------------------------------------------------------------------------------------*/  
       sprintf(completePath,"%s%s/",path, clientNode->client->userId);
       //receive file from user
-      printf("[Server] Receiving file(completePath) %s from user %s\n", completePath, clientNode->client->userId);
       if(receive_(clientSockets->commandsSocket, completePath) == SUCCESS) {
         //aqui o completePath está sendo concatenado com o fileName
-        printf("[Server] Received file %s at %s\n", basename(fileName), getUserDirectory(clientNode->client->userId));
         //receive the current lastModification
         updateLocalTime(lastModification);
-        printf("[Server] Local time updated: %s\n", lastModification);
+        printf("[SERVER] Updating FILE DATETIME to %s\n", lastModification);
         //set in the addfiles
         strcat(completePath, basename(fileName));
-        printf("[Server] CompletePath: %s\n", completePath);
         struct stat fileStat = getAttributes(completePath);
         //add the file to filelist
-        printf("[Server] Adding files to list\n");
         addFilesToFileList(clientNode->client->fileList, basename(fileName), lastModification, fileStat.st_size);
-        printf("[Server] Finished adding files to list\n");
+        bzero(clientNode->client->lastModification, TIMESIZE);
+        updateLocalTime(clientNode->client->lastModification);
+        printf("[SERVER] Updating CLIENT DATETIME to %s\n", clientNode->client->lastModification);
       }
     } else if(strcmp(command, "download") == 0) {
       /*-------------------------------------------------------------------------------------------
@@ -195,7 +233,6 @@ void *clientCommandsThread(void *threadArg) {
       //create the path to download(including filename)
       sprintf(completePath,"%s%s/%s",path, clientNode->client->userId, fileName);        
       //send the file to user
-      printf("[Server] Sending file(path) %s to user %s\n", completePath, clientNode->client->userId);
       send_(clientSockets->commandsSocket, completePath);
       //send the current file date
       struct chain_node* fileNode = chain_find(clientNode->client->fileList, basename(fileName));
@@ -236,7 +273,6 @@ int main(int argc, char *argv[]) {
 
       //wait for the first user to connect with his main sync
       if((newSocket = accept(sockfd, (struct sockaddr *) &clientAddress, &clientLenght)) != ERROR){
-        printf("[Server] Connecting to newSocket %d\n", newSocket);
         strcpy(userId, receiveMessage(newSocket, "",FALSE));
         printf("[Server] Received new connection from %s\n", userId);
         //verify user, if it is ok, go on, else ERROR
@@ -248,7 +284,6 @@ int main(int argc, char *argv[]) {
           clientStruct->client->loggedIn = 1;
           updateLocalTime(clientStruct->client->lastModification);
           getFilesFromUser(userId, clientStruct->client->fileList, SERVER, clientStruct->client->lastModification);
-          printf("[Server] [0] Current connections from this user %d\n", clientStruct->client->numDevices);
 
           //create Directory for the user
           createDirectory(userId, SERVER);

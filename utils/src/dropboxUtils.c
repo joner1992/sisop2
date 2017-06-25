@@ -479,7 +479,7 @@ int chain_print(chain_list* list) {
 }
 
 void updateLocalTime(char *buffer) {
-    time_t rawtime;
+  time_t rawtime;
 	struct tm * timeinfo;
 
 	time (&rawtime);
@@ -569,8 +569,93 @@ void getFilesFromUser(char* userId, chain_list* list, int isServer, char *lastMo
         fileAttributes = getAttributes(pathFile);
         
         addFilesToFileList(list, file->d_name, lastModification, fileAttributes.st_size);
-        printf("[Server] Adding file %s to %s fileList\n", file->d_name, userId);
       }
     }
+  }
+}
+
+void removeFileFromSystem(char *userId, int isServer) {
+  // These are data types defined in the "dirent" header
+  char path[255];
+  bzero(path, 255);
+  if(isServer) {
+    sprintf(path, "./clientsDirectories/sync_dir_%s/", userId);
+  } else {
+    strcpy(path, getUserDirectory(userId));
+  }
+
+  DIR *theFolder = opendir(path);
+  struct dirent *next_file;
+  char filepath[256];
+
+  while ( (next_file = readdir(theFolder)) != NULL )
+  {
+    // build the path for each file in the folder
+    sprintf(filepath, "%s/%s", path , next_file->d_name);
+    if(isRegularFile(next_file)) {
+      remove(filepath);
+    }
+  }
+  closedir(theFolder);
+}
+
+void sendServerFiles(int socket, char *buffer, char *path) {
+  //read name of the operation and name file
+  char serverFileInformations[BUFFERSIZE];
+  char fileName[BUFFERSIZE];
+  char fileModificationDate[BUFFERSIZE];
+  char *forIterator;
+  char *subString;
+  char completePath[255];
+  int numCommands = 1;
+
+  bzero(serverFileInformations, BUFFERSIZE);
+  strcpy(serverFileInformations, buffer);
+
+  for (forIterator = strtok_r(serverFileInformations,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
+    bzero(completePath, 255);
+    strcpy(completePath, path);   
+
+    if ((numCommands%2) != 0){
+      bzero(fileName, BUFFERSIZE);
+      strcpy(fileName, forIterator);
+    }
+    else if ((numCommands%2) == 0){
+      bzero(fileModificationDate, BUFFERSIZE);
+      strcpy(fileModificationDate, forIterator);
+      
+      strcat(completePath, fileName);
+      send_(socket, completePath);
+    }
+    numCommands++;
+  }
+}
+
+void receiveServerFiles(int socket, char *buffer, char *path, chain_list *list) {
+  //read name of the operation and name file
+  char serverFileInformations[BUFFERSIZE];
+  char fileName[BUFFERSIZE];
+  char fileModificationDate[BUFFERSIZE];
+  char *forIterator;
+  char *subString;
+  int numCommands = 1;
+
+  bzero(serverFileInformations, BUFFERSIZE);
+  strcpy(serverFileInformations, buffer);
+
+  for (forIterator = strtok_r(serverFileInformations,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
+    if (numCommands%2 != 0){
+      bzero(fileName, BUFFERSIZE);
+      strcpy(fileName, forIterator);
+    }
+    else if (numCommands%2 == 0){
+      bzero(fileModificationDate, BUFFERSIZE);
+      strcpy(fileModificationDate, forIterator);
+      if(receive_(socket, path) == SUCCESS) {
+        addFilesToFileList(list, fileName, fileModificationDate, 0);
+      }
+
+    }
+    numCommands++;
   }
 }

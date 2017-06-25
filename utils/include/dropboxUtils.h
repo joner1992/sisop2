@@ -84,3 +84,6 @@ void sendMessage (int socket, char *buffer);
 void updateLocalTime(char *newDate);
 char* fileListToArray(chain_list* list);
 void getFilesFromUser(char* userId, chain_list* list, int isServer, char *lastModification);
+void sendServerFiles(int socket, char *buffer, char *path);
+void receiveServerFiles(int socket, char *buffer, char *path, chain_list *list);
+void removeFileFromSystem(char *userId, int isServer);
