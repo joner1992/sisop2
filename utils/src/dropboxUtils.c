@@ -10,31 +10,19 @@ void createDirectory(char *userId, int isServer) {
         mkdir(root, 0777);
         printf("Directory ./sync_dir_%s created successfully.\n", userId);
     } else {
-        char home[100] = "/home/";
-        char usr[50];
-        if(!getlogin_r(usr, 50)) {
-            strcat(home, usr);
-            strcat(home, "/sync_dir_");
-            strcat(home, userId);
-            mkdir(home, 0777);
-            printf("Directory %s created successfully.\n", home);
-        } else {
-            exit(ERROR);
-        }
+        printf("Creating user directory\n");
+        char home[100] = "./clientsFiles/sync_dir_"; 
+        strcat(home, userId);
+        mkdir(home, 0777);
+        printf("Directory %s created successfully.\n", home);
     }
 }
 
 char *getUserDirectory(char *userId) {
-    char home[100] = "/home/";
-    char usr[50];
-    if(!getlogin_r(usr, 50)) {
-        strcat(home, usr);
-        strcat(home, "/sync_dir_");
-        strcat(home, userId);
-        strcat(home, "/");
-    } else {
-        exit(ERROR);
-    }
+    char home[100] = "./clientsFiles/sync_dir_";
+    strcat(home, userId);
+    strcat(home, "/");
+    return home;
     return home;
 }
 
