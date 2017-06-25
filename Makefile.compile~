@@ -5,7 +5,6 @@ SRC_DIR=src/
 MAIN_DIR=main/
 CLIENT_DIR=./client/
 SERVER_DIR=./server/
-SERVER_FOLDERS=./clientsFiles/
 CLIENTS_FOLDERS=./clientsDirectories/
 UTILS_SRC=./utils/src/
 UTILS_BIN=./utils/bin/
@@ -42,7 +41,6 @@ phony-client:
 
 phony-server:
 	mkdir -p $(SERVER_DIR)$(BIN_DIR)
-	mkdir -p $(SERVER_FOLDERS)
 	mkdir -p $(CLIENTS_FOLDERS)
 
 phony-utils:
