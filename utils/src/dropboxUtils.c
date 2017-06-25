@@ -1,6 +1,6 @@
 #include "../include/dropboxUtils.h"
 int BUFFER_TRANSFER = 32 * 1024;
-int DEBUG = 0;
+int DEBUG = 1;
 
 void createDirectory(char *userId, int isServer) {
     
@@ -616,7 +616,7 @@ void sendServerFiles(int socket, char *buffer, char *path) {
 
       printf("SENDING FILE %s TO PATH %s \n",fileName, completePath);
       send_(socket, completePath);
-      usleep(10);
+      usleep(50);
     }
     numCommands++;
   }
@@ -646,7 +646,7 @@ void receiveServerFiles(int socket, char *buffer, char *path, chain_list *list) 
       if(receive_(socket, path) == SUCCESS) {
         addFilesToFileList(list, fileName, fileModificationDate, 0);
       }
-      usleep(10);
+      usleep(50);
 
     }
     numCommands++;
