@@ -8,27 +8,27 @@ SERVER_DIR=./server/
 CLIENTS_FOLDERS=./clientsDirectories/
 UTILS_SRC=./utils/src/
 UTILS_BIN=./utils/bin/
-CFLAGS=-m32 -c -pthread
+CFLAGS= -c -pthread -w
 CLIENT_OBJS=dropboxUtils.o dropboxClient.o
 SERVER_OBJS=dropboxUtils.o dropboxServer.o
-CLIENT_MOUNTED_OBJS=$(UTILS_BIN)dropboxUtils.o $(UTILS_BIN)support.o $(CLIENT_DIR)$(BIN_DIR)dropboxClient.o
-SERVER_MOUNTED_OBJS=$(UTILS_BIN)dropboxUtils.o $(UTILS_BIN)support.o $(SERVER_DIR)$(BIN_DIR)dropboxServer.o
+CLIENT_MOUNTED_OBJS=$(UTILS_BIN)dropboxUtils.o $(CLIENT_DIR)$(BIN_DIR)dropboxClient.o
+SERVER_MOUNTED_OBJS=$(UTILS_BIN)dropboxUtils.o $(SERVER_DIR)$(BIN_DIR)dropboxServer.o
 
 
 client: phony-client clean-client $(CLIENT_OBJS)
-	$(CC) $(CLIENT_DIR)$(MAIN_DIR)client.c -m32 -Wall -pthread -o cliente $(CLIENT_MOUNTED_OBJS)
+	$(CC) $(CLIENT_DIR)$(MAIN_DIR)client.c -pthread -o cliente $(CLIENT_MOUNTED_OBJS)
     
 server: phony-server clean-server $(SERVER_OBJS)
-	$(CC) $(SERVER_DIR)$(MAIN_DIR)server.c -m32 -Wall -pthread -o servidor $(SERVER_MOUNTED_OBJS)
+	$(CC) $(SERVER_DIR)$(MAIN_DIR)server.c  -pthread -o servidor $(SERVER_MOUNTED_OBJS)
 
 dropboxClient.o: $(CLIENT_DIR)$(SRC_DIR)dropboxClient.c
-	$(CC) $(CFLAGS) $(CLIENT_DIR)$(SRC_DIR)dropboxClient.c -Wall -o $(CLIENT_DIR)$(BIN_DIR)dropboxClient.o
+	$(CC) $(CFLAGS) $(CLIENT_DIR)$(SRC_DIR)dropboxClient.c -o $(CLIENT_DIR)$(BIN_DIR)dropboxClient.o
 	
 dropboxServer.o: $(SERVER_DIR)$(SRC_DIR)dropboxServer.c
-	$(CC) $(CFLAGS) $(SERVER_DIR)$(SRC_DIR)dropboxServer.c -Wall -o $(SERVER_DIR)$(BIN_DIR)dropboxServer.o
+	$(CC) $(CFLAGS) $(SERVER_DIR)$(SRC_DIR)dropboxServer.c -o $(SERVER_DIR)$(BIN_DIR)dropboxServer.o
 
 dropboxUtils.o: phony-utils $(UTILS_SRC)dropboxUtils.c
-	$(CC) $(CFLAGS) $(UTILS_SRC)dropboxUtils.c -Wall -o $(UTILS_BIN)dropboxUtils.o
+	$(CC) $(CFLAGS) $(UTILS_SRC)dropboxUtils.c  -o $(UTILS_BIN)dropboxUtils.o
 
 clean-client:
 	find $(CLIENT_DIR)$(BIN_DIR) -type f ! -name '*.c' ! -name 'Makefile' -delete

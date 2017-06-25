@@ -4,46 +4,11 @@
 
 //Variables for socket
 int sockfd;
-struct sockaddr_in serv_addr;
-int server_port;
+struct sockaddr_in serverAddress;
+int serverPort;
 
 // Queue for clients structs
-struct chain_list* ClientList;
-
-int verifyAuxSocket(char *buffer) {
-  char buffercmp[BUFFERSIZE];
-  strcpy(buffercmp, buffer);
-  if(buffercmp[0] == 'a' && buffercmp[1] == 'u' && buffercmp[2] == 'x'){
-    return SUCCESS;        
-  }
-  return ERROR;
-}
-
-int verifyUserAuthentication(char *buffer, int newsockfd) {
-  pthread_mutex_lock(&clientListMutex);
-  if(searchForUserId(&clientList, buffer) == SUCCESS) {
-    if(secondLogin(&clientList, buffer) == ERROR){
-      return ERROR;
-    } else {
-      return SUCCESS;
-    }
-  }
-  else {
-    ClientInfo *firstTimeUser = (ClientInfo*) malloc(sizeof(ClientInfo));
-    strcpy(firstTimeUser->userId, buffer);
-    firstTimeUser->numDevices = 1;
-    firstTimeUser->logged_in = 1;
-    initializeList(&(firstTimeUser->filesList));
-    /*
-      Talvez passar o mutex pra função getFiles pq mexe com fileList?
-    */
-    getFilesFromUser(firstTimeUser->userId, &(firstTimeUser->filesList), SERVER);
-    AppendFila2(&clientList, (void *) firstTimeUser);   
-    createDirectory(buffer, SERVER);
-    
-    return SUCCESS;
-  }  
-}
+struct chain_list* clientList;
 
 int getPort(char *argv) {
   char *endptr;
@@ -64,80 +29,86 @@ void createServerSocket(){
 }
 
 void bindServerSocket() {
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(server_port); //CHANGE LINE!!!
-  serv_addr.sin_addr.s_addr = INADDR_ANY;
-  bzero(&(serv_addr.sin_zero), 8);     
+  serverAddress.sin_family = AF_INET;
+  serverAddress.sin_port = htons(serverPort); //CHANGE LINE!!!
+  serverAddress.sin_addr.s_addr = INADDR_ANY;
+  bzero(&(serverAddress.sin_zero), 8);     
   
   // BIND SOCKET
-  if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) == ERROR) {
+  if (bind(sockfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) == ERROR) {
     perror("ERROR on binding server socket");
     exit(ERROR);
   }
 }
 
-void *syncClientThread(void* syncThread){
-  int n;
+void *clientSyncThread(void *threadArg){
   char buffer[BUFFERSIZE];
-  clientThread *newSyncThread = syncThread;
 
-  pthread_mutex_lock(&clientListMutex);
-    if(searchForUserId(&clientList, newSyncThread->userId) == SUCCESS) {
-      ClientInfo *user;
-      user = (ClientInfo *) GetAtIteratorFila2(&clientList);
-    }
-  pthread_mutex_unlock(&clientListMutex);
+  socketsStruct *clientSockets = threadArg;
+  //search for clientInfo structure
+  chain_node *clientNode = chain_find(clientList, clientSockets->userId);
 
-  //colocar o código do sync aqui
-  while(1){
-    sleep(3);
-    /* 
-      É IMPORTANTE DAR UM WRITE DE LIXO OU QUALQUER COISA PRA VERIFICAR SE O SOCKET 
-      TA ATIVO ANTES DE COMEÇAR E CASO O CLIENT INTERROMPA NO MEIO, NO PROXIMO WRITE 
-      QUE DER ERRO, DAR O PTHREAD_EXIT TAMBEM!
-    */
-    bzero(buffer, BUFFERSIZE);
-    strcpy(buffer, "TEST");
-    n = write(newSyncThread->socketId, buffer, BUFFERSIZE);
-    if (n == ERROR) {
-      pthread_mutex_lock(&disconnectMutex);
-        disconnectClientFromServer(newSyncThread->socketId, newSyncThread->userId, &auxSocketsList, &syncSocketsList, 0);
-      pthread_mutex_unlock(&disconnectMutex);
-      pthread_exit(NULL);
-    }
+
+  printf("[Server] starting sync while\n");
+
+  while(1) {
+        
   }
 }
 
-void *auxClientThread(void* auxThread){
-  int n;
+void *clientCommandsThread(void *threadArg) {
   char buffer[BUFFERSIZE];
   char *forIterator;
   char *subString;
   char fileName[BUFFERSIZE];
   char content[BUFFERSIZE];
   char command[BUFFERSIZE];
+  char path[255] = "./clientsDirectories/sync_dir_";
+  char completePath[255];
+  char lastModification[BUFFERSIZE];
   int numCommands;
-  ClientInfo *user;
-  clientThread *newAuxThread = auxThread;
+  pthread_t syncThread;
+  socketsStruct *clientSockets = threadArg;
+  //search for clientInfo structure
+  chain_node *clientNode = chain_find(clientList, clientSockets->userId);
+  
+  //testing if the user can really start the threads
+  if(clientNode->client->numDevices >= 2){
+    printf("[Server] ERROR Maximum number of devices reached\n");
+    sendMessage(clientSockets->commandsSocket, "ConnectionERROR");
+    //close sockets
+    close(clientSockets->commandsSocket);
+    close(clientSockets->syncSocket);
+    //leave      
+    pthread_exit(NULL);
+  } else {
+    //if he can, add one to number of devices
+    sendMessage(clientSockets->commandsSocket, "ConnectionOK");
+    clientNode->client->numDevices++;
+  }
 
-  pthread_mutex_lock(&clientListMutex);
-    if(searchForUserId(&clientList, newAuxThread->userId) == SUCCESS) {
-      user = (ClientInfo *) GetAtIteratorFila2(&clientList);
-    }
-  pthread_mutex_unlock(&clientListMutex);
+  //create sync thread
+  if((pthread_create( &syncThread, NULL, clientSyncThread, threadArg)) != 0){
+    printf("[Server] ERROR on syncThread creation\n");
+    close(clientSockets->commandsSocket);
+    close(clientSockets->syncSocket);
+    exit(1);
+  }
 
-  while(1){ 
+  printf("[Server] starting commands while\n");
+
+  while(1) {
     bzero(buffer, BUFFERSIZE);
     bzero(command, BUFFERSIZE);
     bzero(fileName, BUFFERSIZE);
     bzero(content, BUFFERSIZE);
+    bzero(lastModification, BUFFERSIZE);
+    bzero(completePath, 255);
     numCommands = 0;
 
-    n = read(newAuxThread->socketId, buffer, BUFFERSIZE);
-    if (n == ERROR) {
-      printf("ERROR reading from socket");
-    }
-   
+    //receive message from client
+    strcpy(buffer, receiveMessage(clientSockets->commandsSocket, "", FALSE));
+    
     for (forIterator = strtok_r(buffer,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)){
       if (numCommands == 0){
 			  strcpy(command, forIterator);
@@ -150,131 +121,154 @@ void *auxClientThread(void* auxThread){
 		  }
 		  numCommands++;
     }
-    
+
     if(strcmp(command, "list") == 0) {
-      pthread_mutex_lock(&clientListMutex);
-        pthread_mutex_lock(&user->fileListMutex);
-          strcpy(buffer, listFiles(&clientList, newAuxThread->userId, newAuxThread->socketId));
-        pthread_mutex_unlock(&user->fileListMutex);
-      pthread_mutex_unlock(&clientListMutex);
+      /*-------------------------------------------------------------------------------------------
+      ------------------------------------ LIST ---------------------------------------------------
+      -------------------------------------------------------------------------------------------*/
+      chain_node* iterator = clientNode->client->fileList->header;
+      while (iterator != NULL) {
+        sendMessage(clientSockets->commandsSocket, iterator->file->name);
+        iterator = iterator->next;
+      }
+      sendMessage(clientSockets->commandsSocket, "endList");
+      //strcpy(buffer, listFiles(&clientList, newAuxThread->userId, newAuxThread->socketId));
+
     } else if(strcmp(command, "exit") == 0) {
-      //cliente pediu para se desconectar, da close nos 2 sockets e mata as 2 threads
-      pthread_mutex_lock(&clientListMutex);
-        removeClient(&clientList, newAuxThread->userId);
-        disconnectClientFromServer(newAuxThread->socketId, newAuxThread->userId, &auxSocketsList, &syncSocketsList, 1);
-        close(newAuxThread->socketId);
-      pthread_mutex_unlock(&clientListMutex);
+      /*-------------------------------------------------------------------------------------------
+      ------------------------------------ EXIT ---------------------------------------------------
+      -------------------------------------------------------------------------------------------*/
+      //remove one of the user devices
+      clientNode->client->numDevices--;
+      printf("[Server] User %s disconnecting, number of devices connected: %d\n", clientNode->client->userId, clientNode->client->numDevices);
+      //finish the sync thread
+      pthread_cancel(syncThread);
+      //close sockets
+      close(clientSockets->commandsSocket);
+      close(clientSockets->syncSocket);
+      //leave      
       pthread_exit(NULL);
 
     } else if(strcmp(command, "upload") == 0) {
-      pthread_mutex_lock(&(user->downloadUploadMutex));
-        bzero(buffer, BUFFERSIZE);
-        strcpy(buffer, fileName);
-        
-        n = write(newAuxThread->socketId, buffer, BUFFERSIZE);
-        if (n == ERROR) {
-          perror("ERROR writing to socket\n");
-          exit(ERROR);
-        }
-        
-        char path[255]= "./clientsDirectories/sync_dir_";
-        sprintf(path,"%s%s/",path, newAuxThread->userId);
-
-
-      if(receive_(newAuxThread->socketId, path) == SUCCESS) {
-        pthread_mutex_lock(&clientListMutex);       
-          struct stat file_stat = getAttributes(path);
-          char lastModified[36];
-          strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&file_stat.st_mtime));
-          pthread_mutex_lock(&user->fileListMutex);
-            addFileToUser(basename(buffer), ".txt", lastModified, file_stat.st_size, &(user->filesList));
-          pthread_mutex_unlock(&user->fileListMutex);
-        pthread_mutex_unlock(&clientListMutex);
+      /*-------------------------------------------------------------------------------------------
+      ------------------------------------ UPLOAD -------------------------------------------------
+      -------------------------------------------------------------------------------------------*/  
+      sprintf(completePath,"%s%s/",path, clientNode->client->userId);
+      //receive file from user
+      printf("[Server] Receiving file(completePath) %s from user %s\n", completePath, clientNode->client->userId);
+      if(receive_(clientSockets->commandsSocket, completePath) == SUCCESS) {
+        //aqui o completePath está sendo concatenado com o fileName
+        printf("[Server] Received file %s at %s\n", basename(fileName), getUserDirectory(clientNode->client->userId));
+        //receive the current lastModification
+        updateLocalTime(lastModification);
+        printf("[Server] Local time updated: %s\n", lastModification);
+        //set in the addfiles
+        strcat(completePath, basename(fileName));
+        printf("[Server] CompletePath: %s\n", completePath);
+        struct stat fileStat = getAttributes(completePath);
+        //add the file to filelist
+        printf("[Server] Adding files to list\n");
+        addFilesToFileList(clientNode->client->fileList, basename(fileName), lastModification, fileStat.st_size);
+        printf("[Server] Finished adding files to list\n");
       }
-      pthread_mutex_unlock(&(user->downloadUploadMutex));
-
     } else if(strcmp(command, "download") == 0) {
-      pthread_mutex_lock(&(user->downloadUploadMutex));
-        char path[255]= "./clientsDirectories/sync_dir_";
-        sprintf(path,"%s%s/%s",path, newAuxThread->userId, fileName);        
-        send_(newAuxThread->socketId, path);
-      pthread_mutex_unlock(&(user->downloadUploadMutex));
+      /*-------------------------------------------------------------------------------------------
+      ------------------------------------ DOWNLOAD -----------------------------------------------
+      -------------------------------------------------------------------------------------------*/
+      //create the path to download(including filename)
+      sprintf(completePath,"%s%s/%s",path, clientNode->client->userId, fileName);        
+      //send the file to user
+      printf("[Server] Sending file(path) %s to user %s\n", completePath, clientNode->client->userId);
+      send_(clientSockets->commandsSocket, completePath);
+      //send the current file date
+      struct chain_node* fileNode = chain_find(clientNode->client->fileList, basename(fileName));
+      strcpy(lastModification, fileNode->file->lastModified);
+      sendMessage(clientSockets->commandsSocket, lastModification);
     } 
   }
 }
 
+int main(int argc, char *argv[]) { 
+  int newSocket, newSyncSocket, firstLogin;
+  struct sockaddr_in clientAddress, clientSyncAddress;
+  struct chain_node* clientStruct;
+  socklen_t clientLenght;
+  pthread_t clientThread;
+  char userId[MAXNAME];
 
-void *acceptClient() {
-
-  while(1){
-
-  /* Aguarda a conexão do cliente no socket principal */
-  if((new_socket_id = accept(server_socket_id, (struct sockaddr *) &client_address, &client_len)) != ERRO){
-    
-    //verificar usuário!
-
-    /* Aguarda a conexão do cliente no socket de sincronização */
-      if((new_sync_socket = accept(server_socket_id, (struct sockaddr *) &client_sync_address, &client_len)) != ERRO){
-
-        arg_struct *args = malloc(sizeof(arg_struct *));
-        args->socket_id = new_socket_id;
-        args->sync_socket = new_sync_socket;
-
-        if(pthread_create( &c_thread, NULL, client_thread, (void *)args) != 0){
-          printf("[main] ERROR on thread creation.\n");
-          close(new_socket_id);
-          close(new_sync_socket);
-          exit(1);
-        }
-      }
-      else {
-        printf("[main] Erro no accept do sync\n");
-        close(new_sync_socket);
-        exit(1);
-      }
-
-     //
-  }
-  else{
-    printf("[main] Erro no accept\n");
-    close(new_socket_id);
-    exit(1);
-  } 
-}
-
-
-int main(int argc, char *argv[]) 
-{ 
-  int new_socket_id, new_sync_socket;
   if(validateServerArguments(argc, argv) != ERROR) 
   {
-    //lista de dados de clientes e files
-    ClientList = chain_create_list();
-
-    if((server_port = getPort(argv[2])) == ERROR) {
-      printf ("ERROR on attributing the port");
+    //Initialize chained list of client structs
+    clientList = chain_create_list();
+    
+    if((serverPort = getPort(argv[2])) == ERROR) {
+      printf ("[Server] ERROR on attributing the port\n");
       return ERROR;
     }
 
     createServerSocket();
     bindServerSocket();
-    // LISTEN
 
     listen(sockfd, 20);
-    printf("Server is listening at: %s:%d\n", inet_ntoa(serv_addr.sin_addr), (int) ntohs(serv_addr.sin_port));
+    clientLenght = sizeof(struct sockaddr_in);
+    printf("[Server] Listening at: %s:%d\n", inet_ntoa(serverAddress.sin_addr), (int) ntohs(serverAddress.sin_port));
 
-    //ACCEPT CLIENT
-    pthread_t acceptThread;
-    pthread_attr_t attributesAcceptThread;
-    pthread_attr_init(&attributesAcceptThread);
-    pthread_create(&acceptThread,&attributesAcceptThread,acceptClient,NULL);
+    while(1){
 
-    pthread_join(acceptThread, NULL);
+      bzero(userId, MAXNAME);
+
+      //wait for the first user to connect with his main sync
+      if((newSocket = accept(sockfd, (struct sockaddr *) &clientAddress, &clientLenght)) != ERROR){
+        printf("[Server] Connecting to newSocket %d\n", newSocket);
+        strcpy(userId, receiveMessage(newSocket, "",FALSE));
+        printf("[Server] Received new connection from %s\n", userId);
+        //verify user, if it is ok, go on, else ERROR
+        if((clientStruct = chain_find(clientList, userId)) == NULL){
+          //create user struct
+          clientStruct = chain_create_client_node(userId);
+          clientStruct->client->numDevices = 0;
+          clientStruct->client->fileList = chain_create_list();
+          clientStruct->client->loggedIn = 1;
+          printf("[Server] [0] Current connections from this user %d\n", clientStruct->client->numDevices);
+
+          //create Directory for the user
+          createDirectory(userId, SERVER);
+
+          //add user to the list
+          chain_add(clientList, clientStruct);
+        } 
+        //wait for the first user to connect with his main sync
+        if((newSyncSocket = accept(sockfd, (struct sockaddr *) &clientSyncAddress, &clientLenght)) != ERROR){
+
+          //pass userId, the main socket and the sync socket
+          socketsStruct *threadArg = malloc(sizeof(socketsStruct *));
+          threadArg->commandsSocket = newSocket;
+          threadArg->syncSocket = newSyncSocket;
+          strcpy(threadArg->userId, userId);
+
+          //create the thread, if it terminates, exit.
+          if((pthread_create( &clientThread, NULL, clientCommandsThread, (void *)threadArg)) != 0){
+            printf("[Server] ERROR on thread creation\n");
+            close(newSocket);
+            close(newSyncSocket);
+            exit(1);
+          }
+        }
+        else {
+          printf("[Server] ERROR accepting sync connection\n");
+          close(newSyncSocket);
+          exit(1);
+        }        
+      }
+      else{
+        printf("[Server] ERROR accepting new connection\n");
+        close(newSocket);
+        exit(1);
+      }        
+    }
+  } else {
+    return ERROR;
   }
-  else 
-  {
-      return ERROR;
-  }        
   return 0;
 }
 

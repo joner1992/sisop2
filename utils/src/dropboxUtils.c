@@ -1,29 +1,26 @@
 #include "../include/dropboxUtils.h"
 int BUFFER_TRANSFER = 32 * 1024;
-int DEBUG = 0;
+int DEBUG = 1;
 
-void createDirectory(char *argv, int server) {
+void createDirectory(char *userId, int isServer) {
     
-    if(server) {
+    if(isServer) {
         char root[100] = "./clientsDirectories/sync_dir_";
-        strcat(root, argv);
+        strcat(root, userId);
         mkdir(root, 0777);
-        printf("Directory ./sync_dir_%s created successfully.\n", argv);
-    }
-    else {
+        printf("Directory ./sync_dir_%s created successfully.\n", userId);
+    } else {
         char home[100] = "/home/";
         char usr[50];
         if(!getlogin_r(usr, 50)) {
             strcat(home, usr);
             strcat(home, "/sync_dir_");
-            strcat(home, argv);
+            strcat(home, userId);
             mkdir(home, 0777);
             printf("Directory %s created successfully.\n", home);
-        }
-        else {
+        } else {
             exit(ERROR);
         }
-        
     }
 }
 
@@ -41,88 +38,6 @@ char *getUserDirectory(char *userId) {
     return home;
 }
 
-void initializeList(PFILA2 list){
-  if(CreateFila2(list) != LISTSUCCESS) { // 0 = linked list initialized successfully
-    perror("ERROR initializing linked list");
-    exit(ERROR);
-  }
-}
-
-int searchForFile(char *fileName, PFILA2 fileList) {
-  int first;
-  first = FirstFila2(fileList);
-  
-  if (first == LISTSUCCESS) {
-    void *fileFound;
-    UserFiles *fileWanted;
-    fileWanted = (UserFiles*) GetAtIteratorFila2(fileList);
-    if (strcmp(fileWanted->name, fileName) == 0) {
-      return SUCCESS;
-    }
-    else {
-      int iterator = 0;
-      while (iterator == 0) {
-        iterator = NextFila2(fileList);
-        fileFound = GetAtIteratorFila2(fileList);
-        if (fileFound == NULL) {
-            return ERROR;
-        }
-        else {
-          fileWanted = (UserFiles*) fileFound;
-          if (strcmp(fileWanted->name, fileName) == 0) {
-              return SUCCESS;
-          }
-        }
-      }
-      return ERROR;
-    }
-  }
-  else {
-     return ERROR;
-  }
-}
-
-
-//FAZER!! tentar fazer de uma forma que sirva tanto pro client quanto para o server
-int addFileToUser(char *name, char *extension, char *lastModified, int size, PFILA2 fileList){
-
-    if(searchForFile(name, fileList) != SUCCESS) {
-        UserFiles *newFile = (UserFiles *) malloc(sizeof(UserFiles));
-        strcpy(newFile->name, name);
-        strcpy(newFile->extension, extension);
-        strcpy(newFile->last_modified, lastModified);
-        newFile->size = size;
-        if(AppendFila2(fileList, (void *) newFile) == LISTSUCCESS) {
-            return SUCCESS;
-        }
-    }
-    else{
-        UserFiles *newFile;
-        newFile = (UserFiles *) GetAtIteratorFila2(fileList);
-        strcpy(newFile->name, name);
-        strcpy(newFile->extension, extension);
-        strcpy(newFile->last_modified, lastModified);
-        newFile->size = size;
-        return SUCCESS;      
-    }
-    return ERROR;
-}
-
-int removeFileFromUser(char *fileName, PFILA2 fileList){
-    //fazer remoção do filename do user
-    if(searchForFile(fileName, fileList) == SUCCESS) {
-        if(DeleteAtIteratorFila2(fileList) == LISTSUCCESS) {
-            printf("FILE %s removed successfully from list", fileName);
-            return SUCCESS;
-        }
-        else {
-            printf("FILE couldn't be deleted from list");
-        }
-    }
-    printf("FILE not found in list");
-    return ERROR;
-}
-
 int send_(int socket, char* filename) {
    int size, read_size, stat, packet_index;
    char send_buffer[BUFFER_TRANSFER], read_buffer[256];
@@ -135,7 +50,8 @@ int send_(int socket, char* filename) {
         return -1;
    } 
     
-    if(DEBUG) printf("\nSending %s\n", basename(filename));
+    if(DEBUG) printf("[Debug] Sending %s\n", basename(filename));
+    if(DEBUG) printf("[Debug] completePath: %s\n", filename);
     
     write(socket, basename(filename), 255);
     
@@ -200,7 +116,8 @@ int receive_(int socket, char path[255]) { // Start function
     stat = read(socket, filename, sizeof(filename));
   } while(stat<0);
   
-  if(DEBUG)  printf("Receiveing %s", filename);
+  if(DEBUG) printf("[Debug] Receiveing %s\n", filename);
+  if(DEBUG) printf("[Debug] Location to save: %s\n", path);
   
   //Find the size of the file
   do {
@@ -305,44 +222,6 @@ int isRegularFile(struct dirent *file) {
   return file->d_type == DT_REG;
 }
 
-void getFilesFromUser(char* userId, PFILA2 filesList, int server) {
-  char root[100] = "./clientsDirectories/sync_dir_";
-  char pathDirectory[255];
-  char pathFile[255];
-  struct dirent *file;
-  struct stat fileAttributes;
-  DIR* directory;
-    
-  bzero(pathDirectory, 255);
-  bzero(pathFile, 255);
-
-  if(server) {
-    sprintf(pathDirectory, "%s%s/",root,userId);
-  }
-  else {
-      strcpy(pathDirectory, getUserDirectory(userId));
-  }
-
-  directory = opendir(pathDirectory);
-
-  if(directory) {
-    while ((file = readdir(directory)) != NULL) {
-      if(isRegularFile(file)) {
-        sprintf(pathFile,"%s%s",pathDirectory,file->d_name);
-        fileAttributes = getAttributes(pathFile);
-        
-        char lastModified[36];
-        bzero(lastModified, 36);
-        strftime(lastModified, 36, "%Y.%m.%d %H:%M:%S", localtime(&fileAttributes.st_mtime));
-        addFileToUser(file->d_name, getFilenameExt(file->d_name), lastModified, fileAttributes.st_size, filesList);
-        // printf("%s\n", file->d_name);
-        // printf("%ld\n", fileAttributes.st_mtime);
-        // printf("%lld\n", fileAttributes.st_size);
-      }
-    }
-  }
-}
-
 char *removeFileNameFromPath(char *path){
     char fileName[BUFFERSIZE];
     char command[BUFFERSIZE];
@@ -358,7 +237,18 @@ char *removeFileNameFromPath(char *path){
     return fileName;
 }
 
-char *receiveMessage (int socket, char *conditionToStop, int printing) {
+void sendMessage (int socket, char *buffer) {
+  int n;
+  n = write(socket, buffer, BUFFERSIZE);
+  if (n == ERROR) {
+    perror("ERROR writing to socket\n");
+    exit(ERROR);
+  }
+
+  return 0;
+}
+
+char *receiveMessage(int socket, char *condition, int isCondition) {
     int n;
     char buffer[BUFFERSIZE];
     
@@ -370,35 +260,36 @@ char *receiveMessage (int socket, char *conditionToStop, int printing) {
         exit(ERROR);
         }
 
-        if(strcmp(buffer, conditionToStop) == 0) {
-            break;
-        } else if(printing == 1) {
-            printf("%s\n", buffer);
-        } else if (printing == 2){
-            printf("%s", buffer);
+        if(isCondition) {
+            if(strcmp(buffer, condition) == 0) {
+                break;
+            }
+        } else {
+            if(n > 0){
+                break;
+            }
         }
+
     }
     return buffer;
 }
-
-
 
 struct chain_list* chain_create_list() {
   struct chain_list* list = malloc(sizeof(chain_list));
   list->size = 0;
   list->header = NULL;
 
-  if(pthread_mutex_init(list->lock, NULL) != 0) {
-        printf("\n Mutex init failed\n");
-        free(list);
-        return NULL;
-    }
+  if(pthread_mutex_init(&list->lock, NULL) != 0) {
+    printf("\n Mutex init failed\n");
+    free(list);
+    return NULL;
+  }
   return list;
 }
 
 struct chain_node* chain_create_client_node(char* userId) {
   struct chain_node* node = malloc(sizeof(chain_node));
-  Client_Info* client = malloc(sizeof(Client_Info));
+  clientInfo* client = malloc(sizeof(clientInfo));
 
   if(pthread_mutex_init(&client->loginMutex, NULL) != 0) {
         printf("\nCreate Client Node Mutex init failed\n");
@@ -415,9 +306,9 @@ struct chain_node* chain_create_client_node(char* userId) {
   return node;
 }
 
-struct chain_node* chain_create_file_node(char* name, char* extension, char* last_modified, int size) {
+struct chain_node* chain_create_file_node(char* name, char* lastModified, int size) {
   struct chain_node* node = malloc(sizeof(chain_node));
-  UserFile* file = malloc(sizeof(UserFile));
+  userFile* file = malloc(sizeof(userFile));
 
   if(pthread_mutex_init(&file->fileMutex, NULL) != 0) {
         printf("\nCreate Client Node Mutex init failed\n");
@@ -427,8 +318,7 @@ struct chain_node* chain_create_file_node(char* name, char* extension, char* las
   }
 
   strcpy(file->name, name);
-  strcpy(file->extension, extension);
-  strcpy(file->last_modified, last_modified);
+  strcpy(file->lastModified, lastModified);
   file->size = size;
 
   node->file = file;
@@ -451,11 +341,11 @@ int chain_add(chain_list* list, chain_node* node) {
       }
     }
     printf("STARTING ADD\n");
-    pthread_mutex_lock(list->lock);
+    pthread_mutex_lock(&list->lock);
     node->next = list->header;
     list->header = node;
     list->size++;
-    pthread_mutex_unlock(list->lock);
+    pthread_mutex_unlock(&list->lock);
     return 1;
   }
     printf("ADD ERROR: List not initalized\n");
@@ -467,13 +357,13 @@ int chain_remove(chain_list* list, char* chainname) {
     printf("REMOVE ERROR: List not initialized\n");
     return -1;
   }
-  pthread_mutex_lock(list->lock);
+  pthread_mutex_lock(&list->lock);
 
   chain_node* previous = NULL;
   chain_node* node = list->header;
 
   if (node == NULL) {
-    pthread_mutex_unlock(list->lock);
+    pthread_mutex_unlock(&list->lock);
     return 1;
   }
 
@@ -490,7 +380,7 @@ int chain_remove(chain_list* list, char* chainname) {
  }
 
  if (node == NULL) {
-   pthread_mutex_unlock(list->lock);
+   pthread_mutex_unlock(&list->lock);
    return 1;
  }
 
@@ -505,13 +395,22 @@ int chain_remove(chain_list* list, char* chainname) {
   if(node->client != NULL) free(node->client);
   if(node->file != NULL) free(node->file);
   free(node);
-  pthread_mutex_unlock(list->lock);
+  pthread_mutex_unlock(&list->lock);
   return 1;
 }
 
 struct chain_node* chain_find(chain_list* list, char *chainname) {
-  pthread_mutex_lock(list->lock);
+  if(list == NULL){
+    printf("[Cross] ERROR chain_find list not initialized\n");
+    return NULL;
+  }
+  pthread_mutex_lock(&list->lock);
   chain_node* node = list->header;
+
+  if(node == NULL){
+    pthread_mutex_unlock(&list->lock);
+    return NULL;
+  }
 
   if(node->client) {
     while (node!=NULL && strcmp(node->client->userId,chainname)!=0) {
@@ -523,7 +422,7 @@ struct chain_node* chain_find(chain_list* list, char *chainname) {
     }
   }
 
-  pthread_mutex_unlock(list->lock);
+  pthread_mutex_unlock(&list->lock);
   return node;
 }
 
@@ -533,7 +432,7 @@ int chain_clear(chain_list* list) {
       return -1;
     }
 
-    pthread_mutex_lock(list->lock);
+    pthread_mutex_lock(&list->lock);
     chain_node* node = list->header;
 
     while (node != NULL) {
@@ -545,7 +444,7 @@ int chain_clear(chain_list* list) {
 
     list->size = 0;
     list->header = NULL;
-    pthread_mutex_unlock(list->lock);
+    pthread_mutex_unlock(&list->lock);
     return 1;
 }
 
@@ -554,16 +453,93 @@ int chain_print(chain_list* list) {
     printf("PRINT ERROR: List not initalized\n");
     return -1;
   }
+  
+  pthread_mutex_lock(&list->lock);
+  printf("\n---------------------------\n");
 
-  pthread_mutex_lock(list->lock);
   if(list->header == NULL) printf("Empty List\n");
-
+  
   chain_node* node = list->header;
-
-  while(node != NULL) {
-    printf("Node %s\n", node->client->userId);
-    node = node->next;
+  if(node->client) {
+    while(node != NULL) {
+      printf("[Node Client] UserId: %s\n", node->client->userId);
+      node = node->next;
+    }
   }
-  pthread_mutex_unlock(list->lock);
+  
+  if (node->file) {
+    while(node != NULL) {
+      printf("[Node File] Name: %s  LastModified: %s Size: %d\n", node->file->name, node->file->lastModified, node->file->size);
+      node = node->next;
+    }
+  }
+  printf("\n---------------------------\n");
+  pthread_mutex_unlock(&list->lock);
+  
   return 1;
 }
+
+void updateLocalTime(char *buffer) {
+    time_t rawtime;
+	struct tm * timeinfo;
+
+	time (&rawtime);
+	timeinfo = localtime (&rawtime);
+
+	sprintf(buffer, "%d%0.2d%0.2d%d%d%d", timeinfo->tm_year + 1900, timeinfo->tm_mon+1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+
+	return 0;
+}
+
+void addFilesToFileList(chain_list* list, char* name, char* lastModified, int size) {
+  if(list == NULL) {
+    printf("REMOVE ERROR: List not initialized\n");
+    return -1;
+  }
+  
+  chain_node* node = chain_find(list, name);
+  
+  if(node) {
+    strcpy(node->file->lastModified, lastModified);
+    node->file->size = size;
+  } else {
+    node = chain_create_file_node(name, lastModified, size);
+    chain_add(list, node);  
+  }
+}
+
+char* fileListToArray(chain_list* list) {
+  if(list == NULL) {
+    printf("PRINT ERROR: List not initalized\n");
+    return -1;
+  }
+
+  pthread_mutex_lock(&list->lock);
+
+  char array[BUFFERSIZE];
+  bzero(array, BUFFERSIZE);
+  sprintf(array,"#");
+  chain_node* node = list->header;
+
+  //if empty return '##'
+  if(node == NULL) {
+    sprintf(array,"%s#", array);
+    pthread_mutex_unlock(&list->lock);
+    return array;
+  }
+
+  //interate over list concating list
+  while(node != NULL) {
+    if(node->file == NULL) {
+      printf("[fileListToArray] ERROR: node->file == NULL\n");
+      exit(1);
+    }
+    sprintf(array,"%s%s#%s#", array, node->file->name, node->file->lastModified);
+    node = node->next;
+  }
+
+  pthread_mutex_unlock(&list->lock);
+
+  return array;
+}
+

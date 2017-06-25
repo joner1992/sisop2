@@ -1,6 +1,7 @@
 include Makefile.compile
 
-all: client server
+all:
+	make client && make server
 
 run-cliente:
 	./cliente -ip localhost -p 12001 -U USUARIO
