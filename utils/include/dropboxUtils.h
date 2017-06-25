@@ -88,6 +88,3 @@ void getFilesFromUser(char* userId, chain_list* list, int isServer, char *lastMo
 void sendServerFiles(int socket, char *buffer, char *path);
 void receiveServerFiles(int socket, char *buffer, char *path, chain_list *list);
 void removeFileFromSystem(char *userId, int isServer);
-
-int newSend(int socket, char *pathWithFilename);
-int newReceive(int socket, char *pathWithoutFilename);

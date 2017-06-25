@@ -173,12 +173,12 @@ void *commandsThread() {
 
     if(strcmp(command, "upload") == 0) {
       
-      newSend(commandsSocket, fileName);
+      send_(commandsSocket, fileName);
 
     } else if (strcmp(command, "download") == 0) {    
       //receive the getUserDirectory
       strcpy(completePath, getUserDirectory(userId));
-      if(newReceive(commandsSocket, completePath) == SUCCESS) {
+      if(receive_(commandsSocket, completePath) == SUCCESS) {
         //aqui o completePath está sendo concatenado com o fileName
         //receive the current lastModification
         strcpy(lastModification, receiveMessage(commandsSocket, "", FALSE));
