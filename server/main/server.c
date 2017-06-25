@@ -238,7 +238,8 @@ void *clientCommandsThread(void *threadArg) {
       struct chain_node* fileNode = chain_find(clientNode->client->fileList, basename(fileName));
       strcpy(lastModification, fileNode->file->lastModified);
       sendMessage(clientSockets->commandsSocket, lastModification);
-    } 
+    }
+    usleep(15); 
   }
 }
 

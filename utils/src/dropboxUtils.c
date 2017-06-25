@@ -1,5 +1,5 @@
 #include "../include/dropboxUtils.h"
-int BUFFER_TRANSFER = 327684;
+int BUFFER_TRANSFER = 32 * 1024;
 int DEBUG = 0;
 
 void createDirectory(char *userId, int isServer) {

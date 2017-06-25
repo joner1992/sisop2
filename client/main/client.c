@@ -178,6 +178,10 @@ void *commandsThread() {
     } else if (strcmp(command, "download") == 0) {    
       //receive the getUserDirectory
       strcpy(completePath, getUserDirectory(userId));
+      if(strlen(content) > 3) {
+        bzero(completePath, 255);
+        strcpy(completePath, content);
+      }
       if(receive_(commandsSocket, completePath) == SUCCESS) {
         //aqui o completePath está sendo concatenado com o fileName
         //receive the current lastModification
@@ -219,7 +223,7 @@ void *commandsThread() {
         }
         printf("|-------------------------------------|\n");
     }
-
+    usleep(15);
   }
 }
 
