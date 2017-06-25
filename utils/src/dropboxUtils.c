@@ -613,7 +613,10 @@ void sendServerFiles(int socket, char *buffer, char *path) {
       strcpy(fileModificationDate, forIterator);
       
       strcat(completePath, fileName);
+
+      printf("SENDING FILE %s TO PATH %s \n",fileName, completePath);
       send_(socket, completePath);
+      usleep(10);
     }
     numCommands++;
   }
@@ -639,9 +642,11 @@ void receiveServerFiles(int socket, char *buffer, char *path, chain_list *list) 
     else if (numCommands%2 == 0){
       bzero(fileModificationDate, BUFFERSIZE);
       strcpy(fileModificationDate, forIterator);
+      printf("RECEIVING FILE %s TO PATH %s \n",fileName, path);
       if(receive_(socket, path) == SUCCESS) {
         addFilesToFileList(list, fileName, fileModificationDate, 0);
       }
+      usleep(10);
 
     }
     numCommands++;
