@@ -212,7 +212,7 @@ void *clientCommandsThread(void *threadArg) {
       -------------------------------------------------------------------------------------------*/  
       sprintf(completePath,"%s%s/",path, clientNode->client->userId);
       //receive file from user
-      if(receive_(clientSockets->commandsSocket, completePath) == SUCCESS) {
+      if(newReceive(clientSockets->commandsSocket, completePath) == SUCCESS) {
         //aqui o completePath está sendo concatenado com o fileName
         //receive the current lastModification
         updateLocalTime(lastModification);
@@ -233,7 +233,7 @@ void *clientCommandsThread(void *threadArg) {
       //create the path to download(including filename)
       sprintf(completePath,"%s%s/%s",path, clientNode->client->userId, fileName);        
       //send the file to user
-      send_(clientSockets->commandsSocket, completePath);
+      newSend(clientSockets->commandsSocket, completePath);
       //send the current file date
       struct chain_node* fileNode = chain_find(clientNode->client->fileList, basename(fileName));
       strcpy(lastModification, fileNode->file->lastModified);

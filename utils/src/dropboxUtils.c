@@ -615,7 +615,7 @@ void sendServerFiles(int socket, char *buffer, char *path) {
       strcat(completePath, fileName);
 
       printf("SENDING FILE %s TO PATH %s \n",fileName, completePath);
-      send_(socket, completePath);
+      newSend(socket, completePath);
       usleep(50);
     }
     numCommands++;
@@ -643,7 +643,7 @@ void receiveServerFiles(int socket, char *buffer, char *path, chain_list *list) 
       bzero(fileModificationDate, BUFFERSIZE);
       strcpy(fileModificationDate, forIterator);
       printf("RECEIVING FILE %s TO PATH %s \n",fileName, path);
-      if(receive_(socket, path) == SUCCESS) {
+      if(newReceive(socket, path) == SUCCESS) {
         addFilesToFileList(list, fileName, fileModificationDate, 0);
       }
       usleep(50);
@@ -651,4 +651,107 @@ void receiveServerFiles(int socket, char *buffer, char *path, chain_list *list) 
     }
     numCommands++;
   }
+}
+
+int newSend(int socket, char *pathWithFilename) {
+    char usuario[TAM_MAX];
+    char buffer[TAM_MAX];
+    ssize_t bytesRecebidos; // Quantidade de bytes que foram recebidos numa passagem
+    ssize_t bytesLidos;
+    ssize_t bytesEnviados;
+    FILE* handler;
+
+    strcpy(usuario, "usuario");
+
+    bzero(buffer,TAM_MAX);
+    strcpy(buffer, basename(pathWithFilename));
+
+    bytesEnviados = send(socket, buffer, TAM_MAX, 0); // envia o nome do arquivo que o cliente quer receber
+    if (bytesEnviados < 0)
+        printf("[ERROR ][[User: %s]] Error sending the filename to be sent. \n", usuario);
+    else
+        printf("[Server][User: %s] The requested file by the client is: %s\n", usuario, buffer); // Escreve o nome do arquivo que o cliente quer
+
+    //handler = fopen(diretorio,"r");
+    if ((handler = fopen(pathWithFilename, "r")) == NULL) {
+        printf("[ERROR ][User: %s] Error sending the file. \n", usuario);
+        return;
+    }
+
+    while ((bytesLidos = fread(buffer, 1,sizeof(buffer), handler)) > 0){ // Enquanto o sistema ainda estiver lendo bytes, o arquivo nao terminou
+        if ((bytesEnviados = send(socket,buffer,bytesLidos,0)) < bytesLidos) { // Se a quantidade de bytes enviados, não for igual a que a gente leu, erro
+            printf("[ERROR ][User: %s] Error sending the file.", usuario);
+            return;
+        }
+        bzero(buffer, TAM_MAX); // Reseta o buffer
+    }
+    fclose(handler);
+    return SUCCESS;
+}
+
+int newReceive(int socket, char *pathWithoutFilename) {
+    char usuario[TAM_MAX];
+    char buffer[TAM_MAX]; // Buffer que armazena os pacotes que vem sido recebidos
+    ssize_t bytesRecebidos = 0; // Quantidade de bytes que foram recebidos numa passagem
+    ssize_t bytesEnviados; 
+    FILE* handler; // Inteiro para manipulação do arquivo que botaremos no servidor
+    printf("PATH WITHOUT FILENAME: %s\n", pathWithoutFilename);
+    bzero(buffer, TAM_MAX);
+    int flag = 1;
+    flag = htonl(flag);
+
+    strcpy(usuario, "usuario");
+
+    while((bytesRecebidos = recv(socket, buffer, sizeof(buffer),0)) < 0){ // recebe o nome do arquivo que vai receber do cliente
+    }
+
+    printf("RECEIVED FILENAME: %s\n", buffer);
+
+    printf("[Server][User: %s] The file to be sent by client is: %s\n", usuario, buffer); // Escreve o nome do arquivo
+    
+    // if ((bytesEnviados = send(socket, &flag, sizeof(flag), 0)) < 0){
+    //     printf("[ERROR ][User: %s] Error sending acknowledgement to client for file receiving.", usuario); // Envia uma flag dizendo pro cliente que ta tudo pronto e a transferencia do conteudo do arquivo pode começar
+    //     return ERROR;
+    // }
+
+    strcat(pathWithoutFilename,buffer);
+
+    printf("FULL PATH WITH FILENAME: %s\n", pathWithoutFilename);
+
+    bytesRecebidos = 0; // Reseta o numero de bytes lidos
+
+    handler = fopen(pathWithoutFilename, "w"); // Abre o arquivo 
+
+    printf("ABRIU O ARQUIVO: %s\n", pathWithoutFilename);
+
+    bzero(buffer, TAM_MAX); // Reseta o buffer
+
+    while ((bytesRecebidos = recv(socket, buffer, TAM_MAX, 0)) > 0){  // Enquanto tiver coisa sendo lida, continua lendo
+    	if (bytesRecebidos < 0) { // Se a quantidade de bytes recebidos for menor que 0, deu erro
+       		printf("[ERROR ][User: %s] Error when trying to receive client package.\n", usuario);
+            fclose(handler);
+            return ERROR;
+    	}
+        if (buffer[0] == '\0'){
+            printf("[Server][User: %s] Client could not send file.\n", usuario);
+            fclose(handler);
+
+            fseek (handler, 0, SEEK_END); //verifica qual o tamanho do arquivo
+            int size = ftell(handler);
+            if (-1 == size) {   
+                remove(pathWithoutFilename); // se o arquivo nao existir, ele nao vai ser criado
+            }   
+            return; 
+        }
+
+    	fwrite(buffer, 1, bytesRecebidos, handler); // Escreve no arquivo
+
+        bzero(buffer, TAM_MAX); // Reseta o buffer
+
+    	if(bytesRecebidos < TAM_MAX){ // Se o pacote que veio, for menor que o tamanho total, eh porque o arquivo acabou
+    		fclose(handler);
+            printf("[Server][User: %s] Successfully received client file.\n", usuario);
+            return SUCCESS;
+    	}
+    }
 }
