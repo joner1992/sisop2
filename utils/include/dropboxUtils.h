@@ -23,6 +23,7 @@
 #define DEFAULTPORT 12001
 #define SERVER 1
 #define CLIENT 0
+#define TIMESIZE 20
 #define MAXDEVICES 2
 #define TRUE 1
 #define FALSE 0
@@ -37,6 +38,7 @@ typedef struct	file_info	{
 typedef struct client	{
     int numDevices; // dispositivos de usuario
     char userId[MAXNAME]; // id do usuario no servidor, que devera ser unico. Informado pela linha de comando
+    char lastModification[TIMESIZE]; //datetime of the last modification
     struct chain_list* fileList; //TODO ALTERADO PARA UMA LISTA
     pthread_mutex_t loginMutex; 
     int loggedIn; // cliente esta logado ou nao
@@ -81,3 +83,4 @@ char *receiveMessage (int socket, char *condition, int isCondition);
 void sendMessage (int socket, char *buffer);
 void updateLocalTime(char *newDate);
 char* fileListToArray(chain_list* list);
+void getFilesFromUser(char* userId, chain_list* list, int isServer, char *lastModification);

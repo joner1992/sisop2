@@ -2,13 +2,14 @@
 #include "../include/dropboxClient.h"
 #include <stdio.h>
 
-int syncSocket, n, server_port;
+int syncSocket, n, server_port, commandsSocket, m;
 char userId[MAXNAME];
+char path[255];
 struct sockaddr_in serv_addr;
 struct hostent *server;
-int commandsSocket, m;
 struct sockaddr_in aux_serv_addr;
 struct hostent *aux_server;
+char fileListlastModification[TIMESIZE];
 
 pthread_t commandSocketThread;
 pthread_t syncSocketThread;
@@ -232,8 +233,26 @@ void *commandsThread() {
 }
 
 void *syncThread(){
-  while(1){
+  char buffer[BUFFERSIZE];
+  bzero(buffer, BUFFERSIZE);
 
+  //remove files from user
+  removeFileFromSystem(userId);
+
+  //receive list of files from server
+  strcpy(buffer, receiveMessage(syncSocket, "", FALSE));
+  //receive all files adding them to the filesList when client just logged in
+  receiveServerFiles(syncSocket, buffer, path, fileList);
+  //receive the server datetime and set
+  bzero(fileListlastModification, TIMESIZE);
+  strcpy(fileListlastModification, receiveMessage(syncSocket, "", FALSE));
+  
+  printf("[Sync] First sync with Server is DONE at %s\n", fileListlastModification);
+
+  while(1) {
+    
+
+    sleep(10);
   }
 }
 
@@ -258,6 +277,8 @@ int main(int argc, char *argv[]) {
 
     if(connectAuxSocket() == SUCCESS) {
       createDirectory(userId, CLIENT);
+      bzero(path, 255);
+      strcpy(path, getUserDirectory(userId));
       //Preenche lista de arquivos com informações de diretório da home
       connectSocket();
 

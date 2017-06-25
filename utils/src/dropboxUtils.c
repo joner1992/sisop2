@@ -1,6 +1,6 @@
 #include "../include/dropboxUtils.h"
 int BUFFER_TRANSFER = 32 * 1024;
-int DEBUG = 1;
+int DEBUG = 0;
 
 void createDirectory(char *userId, int isServer) {
     
@@ -100,7 +100,7 @@ int send_(int socket, char* filename) {
      fclose(file);
 }
 
-int receive_(int socket, char path[255]) { // Start function 
+int receive_(int socket, char path[255]) {
 
   int recv_size = 0,size = 0, read_size, write_size, packet_index =1,stat;
   char filearray[BUFFER_TRANSFER + 1];
@@ -340,7 +340,6 @@ int chain_add(chain_list* list, chain_node* node) {
           return -1;
       }
     }
-    printf("STARTING ADD\n");
     pthread_mutex_lock(&list->lock);
     node->next = list->header;
     list->header = node;
@@ -543,3 +542,35 @@ char* fileListToArray(chain_list* list) {
   return array;
 }
 
+void getFilesFromUser(char* userId, chain_list* list, int isServer, char *lastModification) {
+  char root[255] = "./clientsDirectories/sync_dir_";
+  char pathDirectory[255];
+  char pathFile[255];
+  struct dirent *file;
+  struct stat fileAttributes;
+  DIR* directory;
+    
+  bzero(pathDirectory, 255);
+  bzero(pathFile, 255);
+
+  if(isServer) {
+    sprintf(pathDirectory, "%s%s/",root,userId);
+  }
+  else {
+    strcpy(pathDirectory, getUserDirectory(userId));
+  }
+
+  directory = opendir(pathDirectory);
+
+  if(directory) {
+    while ((file = readdir(directory)) != NULL) {
+      if(isRegularFile(file)) {       
+        sprintf(pathFile,"%s%s",pathDirectory,file->d_name);
+        fileAttributes = getAttributes(pathFile);
+        
+        addFilesToFileList(list, file->d_name, lastModification, fileAttributes.st_size);
+        printf("[Server] Adding file %s to %s fileList\n", file->d_name, userId);
+      }
+    }
+  }
+}

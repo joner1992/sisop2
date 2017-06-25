@@ -6,6 +6,7 @@
 int sockfd;
 struct sockaddr_in serverAddress;
 int serverPort;
+char usersPath[255] = "./clientsDirectories/sync_dir_";
 
 // Queue for clients structs
 struct chain_list* clientList;
@@ -43,16 +44,32 @@ void bindServerSocket() {
 
 void *clientSyncThread(void *threadArg){
   char buffer[BUFFERSIZE];
-
+  char path[255];
   socketsStruct *clientSockets = threadArg;
   //search for clientInfo structure
   chain_node *clientNode = chain_find(clientList, clientSockets->userId);
+  
+  bzero(buffer, BUFFERSIZE);
+  //get list of files and transform it to string
+  strcpy(buffer, fileListToArray(clientNode->client->fileList));
 
+  //send list of files to the client
+  sendMessage(clientSockets->syncSocket, buffer); 
+  bzero(path, 255);
+  sprintf(path, "%s%s/", usersPath, clientNode->client->userId);
+  
+  //start uploading files
+  sendServerFiles(clientSockets->syncSocket, buffer, path);
 
-  printf("[Server] starting sync while\n");
+  //send current User last modification
+  sendMessage(clientSockets->syncSocket, clientNode->client->lastModification); 
+
+  printf("[Server-Sync] First sync with client is DONE at %s\n", clientNode->client->lastModification);
 
   while(1) {
-        
+
+
+    sleep(10);
   }
 }
 
@@ -229,6 +246,8 @@ int main(int argc, char *argv[]) {
           clientStruct->client->numDevices = 0;
           clientStruct->client->fileList = chain_create_list();
           clientStruct->client->loggedIn = 1;
+          updateLocalTime(clientStruct->client->lastModification);
+          getFilesFromUser(userId, clientStruct->client->fileList, SERVER, clientStruct->client->lastModification);
           printf("[Server] [0] Current connections from this user %d\n", clientStruct->client->numDevices);
 
           //create Directory for the user

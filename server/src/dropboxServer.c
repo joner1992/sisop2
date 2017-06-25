@@ -34,63 +34,34 @@ int validateServerArguments(int argc, char *argv[]) {
 		return exit;
 }
 
+void sendServerFiles(int socket, char *buffer, char *path) {
+  //read name of the operation and name file
+  char serverFileInformations[BUFFERSIZE];
+  char fileName[BUFFERSIZE];
+  char fileModificationDate[BUFFERSIZE];
+  char *forIterator;
+  char *subString;
+  char completePath[255];
+  int numCommands = 1;
 
-// char *listFiles(PFILA2 clientList, char *userId, int socket) {
-//   printf("LIST FILES:\n");
-//   char buffer[BUFFERSIZE];
-//   ClientInfo *user;
-//   if(searchForUserId(clientList, userId) == SUCCESS) {
-//     user = (ClientInfo *) GetAtIteratorFila2(clientList);
-//     bzero(buffer, BUFFERSIZE);
-//     getFiles(buffer, &(user->filesList), socket);
-    
-//     printf("%s", buffer);
-//   }
-//   return buffer;
-// }
+  bzero(serverFileInformations, BUFFERSIZE);
+  strcpy(serverFileInformations, buffer);
 
-// char *getFiles(char *buffer, PFILA2 fila, int socket) {
-//   char bufferPrint[BUFFERSIZE];
-//   int n;
+  for (forIterator = strtok_r(serverFileInformations,"#", &subString); forIterator != NULL; forIterator = strtok_r(NULL, "#", &subString)) {
+    bzero(completePath, 255);
+    strcpy(completePath, path);   
 
-//   sendMessage(socket, "List of Files:");
-
-//   int first;
-//   first = FirstFila2(fila);
-//   bzero(buffer, BUFFERSIZE);
-//   if (first == LISTSUCCESS) {
-//     void *fileFound;
-//     UserFiles *fileWanted;
-//     fileWanted = (UserFiles*) GetAtIteratorFila2(fila);
-
-//     strcat(buffer, fileWanted->name);
-//     strcat(buffer, "\n");
-
-//     sendMessage(socket, fileWanted->name);
-
-//     int iterator = 0;
-//     while (iterator == 0) {
-//       iterator = NextFila2(fila);
-//       fileFound = GetAtIteratorFila2(fila);
-//       if (fileFound == NULL) {
-//           sendMessage(socket, "exit");
-//           return buffer;
-//       }
-//       else {
-//         fileWanted = (UserFiles*) fileFound;
-//         strcat(buffer, fileWanted->name);
-//         strcat(buffer, "\n");
-        
-//         sendMessage(socket, fileWanted->name);
-//       }
-//     }
-//   }
-//   else {
-//     sendMessage(socket, "Server has empty directory.");
-//     sendMessage(socket, "exit");
-
-//     strcat(buffer, "Server has empty directory. \n");
-//     return buffer;
-//   }
-//   return buffer;
-// }
+    if ((numCommands%2) != 0){
+      bzero(fileName, BUFFERSIZE);
+      strcpy(fileName, forIterator);
+    }
+    else if ((numCommands%2) == 0){
+      bzero(fileModificationDate, BUFFERSIZE);
+      strcpy(fileModificationDate, forIterator);
+      
+      strcat(completePath, fileName);
+      send_(socket, completePath);
+    }
+    numCommands++;
+  }
+}
