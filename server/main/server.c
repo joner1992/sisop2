@@ -49,6 +49,7 @@ void *clientSyncThread(void *threadArg){
   socketsStruct *clientSockets = threadArg;
   //search for clientInfo structure
   chain_node *clientNode = chain_find(clientList, clientSockets->userId);
+  pthread_mutex_lock(&clientNode->client->transferMutex);
   
   bzero(buffer, BUFFERSIZE);
   //get list of files and transform it to string
@@ -111,6 +112,7 @@ void *clientSyncThread(void *threadArg){
       sendMessage(clientSockets->syncSocket, "doNothing");
       printf("[SERVER] doNothing SENT to CLIENT\n");
     }
+    pthread_mutex_unlock(&clientNode->client->transferMutex);
     sleep(10);
   }
 }
@@ -207,6 +209,7 @@ void *clientCommandsThread(void *threadArg) {
       pthread_exit(NULL);
 
     } else if(strcmp(command, "upload") == 0) {
+      pthread_mutex_lock(&clientNode->client->transferMutex);
       /*-------------------------------------------------------------------------------------------
       ------------------------------------ UPLOAD -------------------------------------------------
       -------------------------------------------------------------------------------------------*/  
@@ -225,12 +228,14 @@ void *clientCommandsThread(void *threadArg) {
         bzero(clientNode->client->lastModification, TIMESIZE);
         updateLocalTime(clientNode->client->lastModification);
         printf("[SERVER] Updating CLIENT DATETIME to %s\n", clientNode->client->lastModification);
+        pthread_mutex_unlock(&clientNode->client->transferMutex);
       }
     } else if(strcmp(command, "download") == 0) {
       /*-------------------------------------------------------------------------------------------
       ------------------------------------ DOWNLOAD -----------------------------------------------
       -------------------------------------------------------------------------------------------*/
       //create the path to download(including filename)
+        pthread_mutex_lock(&clientNode->client->transferMutex);
       sprintf(completePath,"%s%s/%s",path, clientNode->client->userId, fileName);        
       //send the file to user
       send_(clientSockets->commandsSocket, completePath);
@@ -238,6 +243,7 @@ void *clientCommandsThread(void *threadArg) {
       struct chain_node* fileNode = chain_find(clientNode->client->fileList, basename(fileName));
       strcpy(lastModification, fileNode->file->lastModified);
       sendMessage(clientSockets->commandsSocket, lastModification);
+      pthread_mutex_unlock(&clientNode->client->transferMutex);
     } 
   }
 }

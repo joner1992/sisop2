@@ -41,6 +41,7 @@ typedef struct client	{
     char lastModification[TIMESIZE]; //datetime of the last modification
     struct chain_list* fileList; //TODO ALTERADO PARA UMA LISTA
     pthread_mutex_t loginMutex; 
+    pthread_mutex_t transferMutex/
     int loggedIn; // cliente esta logado ou nao
 } clientInfo;
 
